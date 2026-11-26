@@ -69,6 +69,9 @@ public object ProtoFields {
         return buffer.readByteString()
     }
 
+    /** The last occurrence of field [number] in [message], or null: for messages without an adapter, e.g. a wrapper type's value (field 1). */
+    public fun read(message: ByteString, number: Int): Value? = readNumber(message, number)
+
     private fun readNumber(message: ByteString, number: Int): Value? {
         if (message.size == 0) return null
         val reader = ProtoReader(Buffer().write(message))
