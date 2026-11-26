@@ -1,5 +1,6 @@
 package com.dabble.protomorphic.conformance
 
+import com.dabble.protomorphic.ProtoFields
 import com.dabble.protomorphic.conformance.foundation.v1.CircleShape
 import com.dabble.protomorphic.conformance.foundation.v1.Label
 import com.dabble.protomorphic.conformance.foundation.v1.Person
@@ -268,6 +269,21 @@ class ConformanceTest {
         // A handler is typed by the implementation's own Input and Output.
         val run: (Square) -> Square.Output = { Square.Output(y = it.input!!.x * it.input.x) }
         assertEquals(9, run(Call.ADAPTER.decode(Goldens.SquareCall.decodeHex()).function!!.square!!).y)
+    }
+
+    @Test
+    fun fieldsAreReadAndWrittenByPath() {
+        val call = Call.ADAPTER.encodeByteString(Call(function = Square(input = Square.Input(x = 3)).toFunction()))
+        // Square's input.x, through the Function wrapper's extension bytes.
+        val square = Square.ADAPTER.encodeByteString(Square(input = Square.Input(x = 3)))
+        val x = ProtoFields.read(square, Square.ADAPTER, listOf("input", "x"))!!
+        val output = ProtoFields.write(Square.Output.ADAPTER.encodeByteString(Square.Output()), Square.Output.ADAPTER, listOf("y"), x)
+        assertEquals(Square.Output(y = 3), Square.Output.ADAPTER.decode(output))
+        // Writing merges into an existing message: the other fields stay.
+        val rewritten = ProtoFields.write(square, Square.ADAPTER, listOf("input", "x"), ProtoFields.read(output, Square.Output.ADAPTER, listOf("y"))!!)
+        assertEquals(Square(input = Square.Input(x = 3)), Square.ADAPTER.decode(rewritten))
+        assertNull(ProtoFields.read(Square.ADAPTER.encodeByteString(Square()), Square.ADAPTER, listOf("input", "x")))
+        assertEquals(call, Call.ADAPTER.encodeByteString(Call.ADAPTER.decode(call)))
     }
 
     @Test

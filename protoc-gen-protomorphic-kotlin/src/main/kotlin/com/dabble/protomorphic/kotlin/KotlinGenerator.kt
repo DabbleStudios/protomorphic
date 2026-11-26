@@ -193,7 +193,7 @@ class KotlinGenerator(private val schema: Schema) {
             if (!isInterface) message.nestedTypes.forEach { message(w, context, it, path + listOf(3, it.index)) }
             w.line()
             w.block("public companion object") {
-                adapter(w, message, self, props, oneofs)
+                adapter(w, message, self, props, oneofs, isInterface)
             }
         }
     }
@@ -209,15 +209,27 @@ class KotlinGenerator(private val schema: Schema) {
         w.line()
     }
 
-    private fun adapter(w: CodeWriter, message: Descriptor, self: String, props: List<Prop>, oneofs: List<Oneof>) {
+    private fun adapter(w: CodeWriter, message: Descriptor, self: String, props: List<Prop>, oneofs: List<Oneof>, isInterface: Boolean) {
         val ordered: List<Member> = (props + oneofs.flatMap { it.cases }).sortedBy { it.field.number }
-        w.line("public val ADAPTER: com.squareup.wire.ProtoAdapter<$self> = object : com.squareup.wire.ProtoAdapter<$self>(")
+        w.line("public val ADAPTER: com.dabble.protomorphic.MessageAdapter<$self> = object : com.dabble.protomorphic.MessageAdapter<$self>(")
         w.line("  com.squareup.wire.FieldEncoding.LENGTH_DELIMITED, $self::class,")
         w.line("  \"type.googleapis.com/${message.fullName}\", com.squareup.wire.Syntax.PROTO_3, null, \"${message.file.name}\",")
         w.block(")") {
             props.filter { it.kind == Kind.REPEATED || it.kind == Kind.MAP }.forEach {
                 w.line("private val ${it.property.trim('`')}Adapter by lazy { ${it.collectionAdapter} }")
             }
+            w.line()
+            // Field names to numbers (and message types), for reading and writing fields by path.
+            val fields = if (isInterface) emptyList() else message.fields
+            w.line("override val fields: kotlin.collections.Map<kotlin.String, com.dabble.protomorphic.ProtoField> by lazy {")
+            w.line("  kotlin.collections.mapOf(")
+            fields.forEach { f ->
+                val nested = f.type == Type.MESSAGE && !f.isMapField && wellKnown[f.messageType.fullName] == null
+                val type = if (nested) ", { ${kotlinName(f.messageType)}.ADAPTER }" else ""
+                w.line("    \"${f.name}\" to com.dabble.protomorphic.ProtoField(${f.number}$type),")
+            }
+            w.line("  )")
+            w.line("}")
             w.line()
             w.block("override fun encodedSize(`value`: $self): kotlin.Int") {
                 w.line("var size = value.unknownFields.size")
