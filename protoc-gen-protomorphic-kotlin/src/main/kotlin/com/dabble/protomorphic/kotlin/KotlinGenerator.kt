@@ -60,7 +60,15 @@ class KotlinGenerator(private val schema: Schema) {
             .filter { schema.isInterface(it.containingType) && it.type == Type.MESSAGE && it.messageType.file == file }
             .groupBy { it.messageType.fullName }
 
-        fun extensionRef(ext: FieldDescriptor) = "$extensionsObject.${extensionProperty(ext)}"
+        /**
+         * The object holding [ext]'s [com.dabble.protomorphic.ProtoExtension]: the file's object, or for
+         * an extension declared inside a message (a scoped extension, e.g. `message Center { extend
+         * Horizontal { Center center = 1; } extend Vertical { Center center = 1; } }`) a nested object
+         * named after that message, so same-named extensions of different scopes do not clash.
+         */
+        fun holder(ext: FieldDescriptor) = extensionsObject + (ext.extensionScope?.let { ".${it.name}" } ?: "")
+
+        fun extensionRef(ext: FieldDescriptor) = "${holder(ext)}.${extensionProperty(ext)}"
     }
 
     // ----- Enums --------------------------------------------------------------------------------
@@ -238,19 +246,38 @@ class KotlinGenerator(private val schema: Schema) {
                 throw SchemaException("${ext.fullName}: extending ${ext.containingType.fullName} is not supported")
             }
         }
+        context.extensions.groupBy { it.extensionScope?.name }.forEach { (scope, group) ->
+            if (scope != null && group.map { it.extensionScope }.distinct().size > 1) {
+                throw SchemaException("${context.file.name}: extensions are declared in two messages named $scope; rename one")
+            }
+        }
+        context.extensions.groupBy { it.containingType.fullName to it.name }.values.filter { it.size > 1 }.forEach { same ->
+            throw SchemaException(
+                "${context.file.name}: ${same.joinToString { it.fullName }} extend ${same.first().containingType.fullName} " +
+                    "with the same name, so their Kotlin accessors would clash",
+            )
+        }
         val objectName = context.extensionsObject.substringAfterLast('.')
+        fun declare(ext: FieldDescriptor) {
+            w.kdoc(extensionComment(context, ext))
+            w.line("public val ${extensionProperty(ext)}: com.dabble.protomorphic.ProtoExtension<${valueType(ext)}> =")
+            w.line("  com.dabble.protomorphic.ProtoExtension(\"${ext.containingType.fullName}\", ${ext.number}, \"${ext.fullName}\", ${adapterOf(ext)})")
+            w.line()
+        }
         w.line()
         w.line("/** The extensions declared in ${context.file.name}. */")
         w.block("public object $objectName") {
-            context.extensions.forEach { ext ->
-                w.kdoc(extensionComment(context, ext))
-                w.line("public val ${extensionProperty(ext)}: com.dabble.protomorphic.ProtoExtension<${valueType(ext)}> =")
-                w.line("  com.dabble.protomorphic.ProtoExtension(\"${ext.containingType.fullName}\", ${ext.number}, \"${ext.fullName}\", ${adapterOf(ext)})")
+            context.extensions.filter { it.extensionScope == null }.forEach { declare(it) }
+            context.extensions.filter { it.extensionScope != null }.groupBy { it.extensionScope.name }.forEach { (scope, group) ->
+                w.line("/** The extensions declared inside message $scope. */")
+                w.block("public object $scope") {
+                    group.forEach { declare(it) }
+                }
                 w.line()
             }
             w.line("/** Every extension in this file. */")
             w.line("public val all: kotlin.collections.List<com.dabble.protomorphic.ProtoExtension<*>> by lazy {")
-            w.line("  kotlin.collections.listOf(" + context.extensions.joinToString { extensionProperty(it) } + ")")
+            w.line("  kotlin.collections.listOf(" + context.extensions.joinToString { context.extensionRef(it) } + ")")
             w.line("}")
         }
         context.extensions.forEach { ext ->

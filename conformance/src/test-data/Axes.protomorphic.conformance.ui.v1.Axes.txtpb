@@ -1,0 +1,2 @@
+horizontal { [protomorphic.conformance.ui.v1.Horizontal.center] {} }
+vertical { [protomorphic.conformance.ui.v1.Vertical.center] {} }

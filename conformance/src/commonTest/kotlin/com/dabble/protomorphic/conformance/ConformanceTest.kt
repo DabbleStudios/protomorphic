@@ -3,19 +3,25 @@ package com.dabble.protomorphic.conformance
 import com.dabble.protomorphic.conformance.foundation.v1.CircleShape
 import com.dabble.protomorphic.conformance.foundation.v1.Label
 import com.dabble.protomorphic.conformance.foundation.v1.Person
-import com.dabble.protomorphic.conformance.foundation.v1.person
 import com.dabble.protomorphic.conformance.foundation.v1.RoundedCornerShape
 import com.dabble.protomorphic.conformance.foundation.v1.ShapesExtensions
 import com.dabble.protomorphic.conformance.foundation.v1.circle
 import com.dabble.protomorphic.conformance.foundation.v1.label
+import com.dabble.protomorphic.conformance.foundation.v1.person
 import com.dabble.protomorphic.conformance.foundation.v1.roundedCorner
 import com.dabble.protomorphic.conformance.foundation.v1.withLabel
+import com.dabble.protomorphic.conformance.ui.v1.Axes
+import com.dabble.protomorphic.conformance.ui.v1.Centered
 import com.dabble.protomorphic.conformance.ui.v1.ClipModifier
 import com.dabble.protomorphic.conformance.ui.v1.Greeting
+import com.dabble.protomorphic.conformance.ui.v1.Horizontal
 import com.dabble.protomorphic.conformance.ui.v1.Named
 import com.dabble.protomorphic.conformance.ui.v1.RectangleShape
 import com.dabble.protomorphic.conformance.ui.v1.Shape
 import com.dabble.protomorphic.conformance.ui.v1.Tagged
+import com.dabble.protomorphic.conformance.ui.v1.UiExtensions
+import com.dabble.protomorphic.conformance.ui.v1.Vertical
+import com.dabble.protomorphic.conformance.ui.v1.center
 import com.dabble.protomorphic.conformance.ui.v1.rectangle
 import com.dabble.protomorphic.conformance.v1.Collections
 import com.dabble.protomorphic.conformance.v1.Color
@@ -31,12 +37,12 @@ import com.dabble.protomorphic.packAny
 import com.squareup.wire.ProtoAdapter
 import com.squareup.wire.durationOfSeconds
 import com.squareup.wire.ofEpochSecond
-import okio.ByteString.Companion.decodeHex
-import okio.ByteString.Companion.encodeUtf8
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
+import okio.ByteString.Companion.decodeHex
+import okio.ByteString.Companion.encodeUtf8
 
 /**
  * Every expected encoding comes from `protoc --encode` (protobuf's reference encoder) on the
@@ -239,6 +245,15 @@ class ConformanceTest {
         val named = Named.ADAPTER.decode(bytes.readByteString())
         assertEquals(ShapesExtensions.person.number, named.implementationNumber)
         assertEquals("Ada", named.person?.name)
+    }
+
+    @Test
+    fun scopedExtensionsImplementTwoInterfacesUnderOneName() {
+        val axes = Axes(horizontal = Centered().toHorizontal(), vertical = Vertical.center(Centered()))
+        assertConforms(Goldens.Axes, axes, Axes.ADAPTER)
+        assertEquals(UiExtensions.Horizontal.center.number, axes.horizontal?.implementationNumber)
+        assertEquals("protomorphic.conformance.ui.v1.Vertical.center", UiExtensions.Vertical.center.name)
+        assertEquals(Centered(), Axes.ADAPTER.decode(Goldens.Axes.decodeHex()).vertical?.center)
     }
 
     @Test
