@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 import java.io.ByteArrayOutputStream
 import javax.inject.Inject
 
-// Conformance tests for protoc-gen-protomorphic: the test protos here cover every field type, proto3
+// Conformance tests for protoc-gen-protomorphic-kotlin: the test protos here cover every field type, proto3
 // and editions presence, packing, oneofs, maps, well-known types, unknown fields and enums,
 // interfaces and extensions. Tests compare the generated code's encoding with `protoc --encode`,
 // protobuf's reference encoder, on JVM, iOS and Android. The module applies the protomorphic plugin

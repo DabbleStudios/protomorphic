@@ -13,7 +13,7 @@ abstract class ProtomorphicExtension {
     abstract val includes: ConfigurableFileCollection
 
     /**
-     * Uses the `:protoc-gen-protomorphic` and `:runtime` projects of this build instead of the
+     * Uses the `:protoc-gen-protomorphic-kotlin` and `:runtime` projects of this build instead of the
      * published artifacts. Only for developing protomorphic itself. Default: false.
      */
     abstract val useLocalProjects: Property<Boolean>

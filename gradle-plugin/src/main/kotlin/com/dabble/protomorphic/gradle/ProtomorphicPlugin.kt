@@ -13,7 +13,7 @@ import java.util.Properties
 
 /**
  * `com.dabble.protomorphic`: generates Kotlin from a module's protos with protoc and
- * protoc-gen-protomorphic, both resolved as dependencies, so nothing needs installing.
+ * protoc-gen-protomorphic-kotlin, both resolved as dependencies, so nothing needs installing.
  *
  * For Kotlin Multiplatform modules the generated code goes into `commonMain`; for Kotlin/JVM modules
  * into `main`. Either way the module gets an `api` dependency on the protomorphic runtime.
@@ -55,12 +55,12 @@ class ProtomorphicPlugin : Plugin<Project> {
                 attribute(Category.CATEGORY_ATTRIBUTE, objects.named(Category::class.java, Category.LIBRARY))
                 attribute(LibraryElements.LIBRARY_ELEMENTS_ATTRIBUTE, objects.named(LibraryElements::class.java, LibraryElements.JAR))
             }
-            dependencies.addLater(artifact("protoc-gen-protomorphic"))
+            dependencies.addLater(artifact("protoc-gen-protomorphic-kotlin"))
         }
 
         val generate = tasks.register("generateProtomorphicKotlin", GenerateProtomorphicKotlin::class.java) {
             group = "build"
-            description = "Generates Kotlin from this module's protos with protoc-gen-protomorphic."
+            description = "Generates Kotlin from this module's protos with protoc-gen-protomorphic-kotlin."
             this.protoc.from(protoc)
             wellKnownProtos.from(wellKnown)
             generatorClasspath.from(generator)

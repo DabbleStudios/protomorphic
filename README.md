@@ -67,10 +67,15 @@ protomorphic {
 
 | Module | Artifact | Contents |
 |---|---|---|
-| `protoc-gen-protomorphic` | `com.dabble.protomorphic:protoc-gen-protomorphic` | The protoc plugin (JVM) |
+| `rules` | `com.dabble.protomorphic:rules` | The schema rules and the language-independent schema model (JVM) |
+| `protoc-gen-protomorphic-kotlin` | `com.dabble.protomorphic:protoc-gen-protomorphic-kotlin` | The Kotlin generator: a protoc plugin that checks the rules and generates Kotlin (JVM) |
 | `runtime` | `com.dabble.protomorphic:runtime` | `ProtoExtension`, `ProtoExtensions`, `packAny` (KMP) |
 | `gradle-plugin` | plugin `com.dabble.protomorphic` | protoc + generator wiring, `protomorphic/options.proto` |
 | `conformance` | - | Tests against `protoc --encode` |
+
+Kotlin is the first target. Swift and Go are planned as thin add-on plugins over the official
+`protoc-gen-swift` / `protoc-gen-go`, which already handle messages and extensions; they add the
+interface layer and reuse `rules`.
 
 Until artifacts are published, consume it as a composite build (e.g. a git submodule plus
 `includeBuild`).

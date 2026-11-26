@@ -1,4 +1,5 @@
 rootProject.name = "protomorphic"
+enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 
 pluginManagement {
     // The Gradle plugin is its own build so this build (the conformance tests) can apply it.
@@ -29,6 +30,7 @@ dependencyResolutionManagement {
     }
 }
 
-include(":protoc-gen-protomorphic")
+include(":rules")
+include(":protoc-gen-protomorphic-kotlin")
 include(":runtime")
 include(":conformance")

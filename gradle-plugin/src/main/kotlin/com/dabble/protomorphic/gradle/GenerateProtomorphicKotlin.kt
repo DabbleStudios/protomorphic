@@ -18,7 +18,7 @@ import java.io.File
 import javax.inject.Inject
 
 /**
- * Runs protoc with protoc-gen-protomorphic on every .proto file under [sources], resolving imports
+ * Runs protoc with protoc-gen-protomorphic-kotlin on every .proto file under [sources], resolving imports
  * from [includes], the well-known protos and protomorphic/options.proto, and writes the Kotlin to
  * [outputDir]. Schema rule violations reported by the plugin fail the task with protoc's message.
  */
@@ -39,7 +39,7 @@ abstract class GenerateProtomorphicKotlin @Inject constructor(
     @get:PathSensitive(PathSensitivity.NONE)
     abstract val wellKnownProtos: ConfigurableFileCollection
 
-    /** protoc-gen-protomorphic and its dependencies. */
+    /** protoc-gen-protomorphic-kotlin and its dependencies. */
     @get:Classpath
     abstract val generatorClasspath: ConfigurableFileCollection
 
@@ -80,7 +80,7 @@ abstract class GenerateProtomorphicKotlin @Inject constructor(
             protoc.singleFile.copyTo(it, overwrite = true)
             it.setExecutable(true)
         }
-        val plugin = work.resolve("protoc-gen-protomorphic").also { script ->
+        val plugin = work.resolve("protoc-gen-protomorphic-kotlin").also { script ->
             val java = File(System.getProperty("java.home"), "bin/java").absolutePath
             val classpath = generatorClasspath.files.joinToString(File.pathSeparator) { it.absolutePath }
             script.writeText("#!/bin/sh\nexec \"$java\" -cp \"$classpath\" $MAIN_CLASS \"\$@\"\n")
@@ -91,8 +91,8 @@ abstract class GenerateProtomorphicKotlin @Inject constructor(
             commandLine(
                 buildList {
                     add(protocExe.absolutePath)
-                    add("--plugin=protoc-gen-protomorphic=${plugin.absolutePath}")
-                    add("--protomorphic_out=${out.absolutePath}")
+                    add("--plugin=protoc-gen-protomorphic-kotlin=${plugin.absolutePath}")
+                    add("--protomorphic-kotlin_out=${out.absolutePath}")
                     add("-I${root.absolutePath}")
                     includes.files.forEach { add("-I${it.absolutePath}") }
                     add("-I${protoPath.absolutePath}")
@@ -105,6 +105,6 @@ abstract class GenerateProtomorphicKotlin @Inject constructor(
 
     private companion object {
         const val OPTIONS = "protomorphic/options.proto"
-        const val MAIN_CLASS = "com.dabble.protomorphic.codegen.MainKt"
+        const val MAIN_CLASS = "com.dabble.protomorphic.kotlin.MainKt"
     }
 }

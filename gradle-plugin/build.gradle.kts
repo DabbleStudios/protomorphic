@@ -1,7 +1,7 @@
 import java.util.Properties
 
 // The protomorphic Gradle plugin (`com.dabble.protomorphic`): runs protoc (resolved from Maven) with
-// protoc-gen-protomorphic on a module's protos, puts protomorphic/options.proto on the proto path,
+// protoc-gen-protomorphic-kotlin on a module's protos, puts protomorphic/options.proto on the proto path,
 // and adds the generated Kotlin and the runtime to the module.
 plugins {
     `kotlin-dsl`

@@ -1,11 +1,12 @@
-package com.dabble.protomorphic.codegen
+package com.dabble.protomorphic.rules
 
 import com.google.protobuf.Descriptors.Descriptor
 import com.google.protobuf.Descriptors.FieldDescriptor
 import com.google.protobuf.Descriptors.FileDescriptor
 
 /**
- * The schema rules protobuf itself cannot express. Checked for the files being generated
+ * The protomorphic schema rules, which protobuf itself cannot express and which hold whatever the
+ * target language. Checked for the files being generated
  * (and, for library declarations, every file in the request); any violation fails the build.
  *
  * 1. An extension of a message other than a google.protobuf.*Options is declared in a file with a

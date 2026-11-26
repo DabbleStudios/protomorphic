@@ -5,7 +5,7 @@ import com.squareup.wire.ProtoAdapter
 /**
  * One protobuf extension: field [number] of the message [extendee], holding a [T].
  *
- * protoc-gen-protomorphic generates one of these per `extend` field, next to typed accessors that use it.
+ * protoc-gen-protomorphic-kotlin generates one of these per `extend` field, next to typed accessors that use it.
  * Registries (e.g. renderers keyed by extension) can collect them.
  */
 public class ProtoExtension<T : Any>(

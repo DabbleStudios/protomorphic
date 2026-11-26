@@ -1,9 +1,8 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
-// protoc-gen-protomorphic: a protoc plugin that generates Kotlin Multiplatform message classes,
-// enums and typed extension accessors on the Wire runtime, and enforces the protomorphic schema
-// rules (library extension ranges, layering, interfaces). The protomorphic Gradle plugin resolves
-// this module's jar and runs it as protoc's plugin.
+// protoc-gen-protomorphic-kotlin: a protoc plugin that checks the protomorphic rules (:rules) and
+// generates Kotlin Multiplatform message classes, enums and typed extension accessors on the Wire
+// runtime. The protomorphic Gradle plugin resolves this module's jar and runs it as protoc's plugin.
 plugins {
     alias(libs.plugins.kotlinJvm)
     `java-library`
@@ -21,13 +20,12 @@ java {
 }
 
 dependencies {
-    // Descriptors (FileDescriptor.buildFrom resolves proto3 and editions semantics) and the
-    // CodeGeneratorRequest / CodeGeneratorResponse plugin protocol.
-    implementation(libs.protobuf.java)
+    implementation(projects.rules)
+    testImplementation(testFixtures(projects.rules))
     testImplementation(libs.kotlin.test)
 }
 
-// The rule tests run the real protoc on small schemas.
+// The tests run the real protoc on small schemas (see the Protoc test fixture in :rules).
 val protoc: Configuration by configurations.creating { isTransitive = false }
 dependencies {
     protoc("com.google.protobuf:protoc:${libs.versions.protobuf.get()}:${protocClassifier()}@exe")

@@ -1,4 +1,4 @@
-package com.dabble.protomorphic.codegen
+package com.dabble.protomorphic.kotlin
 
 /** A minimal indenting writer for generated Kotlin. */
 class CodeWriter {

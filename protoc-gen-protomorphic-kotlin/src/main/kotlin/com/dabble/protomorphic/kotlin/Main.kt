@@ -1,10 +1,13 @@
-package com.dabble.protomorphic.codegen
+package com.dabble.protomorphic.kotlin
 
+import com.dabble.protomorphic.rules.Schema
+import com.dabble.protomorphic.rules.SchemaException
+import com.dabble.protomorphic.rules.SchemaRules
 import com.google.protobuf.compiler.PluginProtos.CodeGeneratorRequest
 import com.google.protobuf.compiler.PluginProtos.CodeGeneratorResponse
 
 /**
- * protoc plugin entry point. protoc writes a CodeGeneratorRequest (every file to generate plus all
+ * protoc-gen-protomorphic-kotlin entry point. protoc writes a CodeGeneratorRequest (every file to generate plus all
  * of its imports, parsed and linked) to stdin and reads a CodeGeneratorResponse from stdout.
  */
 fun main() {
@@ -43,6 +46,3 @@ fun generate(request: CodeGeneratorRequest): CodeGeneratorResponse {
     }
     return response.build()
 }
-
-/** A schema the generator cannot handle; reported to protoc as the plugin's error. */
-class SchemaException(message: String) : Exception(message)

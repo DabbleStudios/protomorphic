@@ -1,18 +1,17 @@
-package com.dabble.protomorphic.codegen
+package com.dabble.protomorphic.rules
 
 import com.google.protobuf.DescriptorProtos.FileDescriptorProto
 import com.google.protobuf.Descriptors.Descriptor
 import com.google.protobuf.Descriptors.DescriptorValidationException
-import com.google.protobuf.Descriptors.EnumDescriptor
 import com.google.protobuf.Descriptors.FieldDescriptor
 import com.google.protobuf.Descriptors.FileDescriptor
 import com.google.protobuf.DynamicMessage
 import com.google.protobuf.compiler.PluginProtos.CodeGeneratorRequest
 
 /**
- * Everything the generator and the rules need about the request: protobuf-java descriptors (which
- * resolve proto3 and editions semantics such as presence, packing and open/closed enums), Kotlin
- * names, source comments and the protomorphic options.
+ * Everything the rules and the language generators need about a protoc request, independent of any
+ * target language: protobuf-java descriptors (which resolve proto3 and editions semantics such as
+ * presence, packing and open/closed enums), source comments and the protomorphic options.
  */
 class Schema(request: CodeGeneratorRequest) {
 
@@ -37,20 +36,6 @@ class Schema(request: CodeGeneratorRequest) {
     }
 
     fun proto(file: FileDescriptor): FileDescriptorProto = protos.getValue(file.name)
-
-    // ----- Kotlin names -------------------------------------------------------------------------
-
-    fun kotlinPackage(file: FileDescriptor): String = file.options.javaPackage.ifEmpty { file.`package` }
-
-    /** Fully-qualified Kotlin name of a message or enum, e.g. `com.example.Outer.Inner`. */
-    fun kotlinName(descriptor: Descriptor): String =
-        kotlinPackage(descriptor.file) + "." + nesting(descriptor.containingType) + descriptor.name
-
-    fun kotlinName(descriptor: EnumDescriptor): String =
-        kotlinPackage(descriptor.file) + "." + nesting(descriptor.containingType) + descriptor.name
-
-    private fun nesting(parent: Descriptor?): String =
-        if (parent == null) "" else nesting(parent.containingType) + parent.name + "."
 
     // ----- Comments -----------------------------------------------------------------------------
 
