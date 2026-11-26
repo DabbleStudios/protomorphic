@@ -14,11 +14,15 @@ import com.google.protobuf.Descriptors.FileDescriptor
  * 2. Every file of a library carries the same declaration.
  * 3. The extension ranges of different libraries do not overlap.
  * 4. A file imports files of another library only if that library is in its `dependencies`.
- * 5. An (interface) message has an extension range and no oneofs. Its fields are abstract, like a
- *    Kotlin interface's properties: they are never set on the interface itself.
+ * 5. An (interface) message has an extension range and no oneofs or nested enums. Its fields are
+ *    abstract, like a Kotlin interface's properties: they are never set on the interface itself. Its
+ *    nested messages are abstract types, like a Kotlin interface's type parameters.
  * 6. An extension of an (interface) message is a singular message.
  * 7. A message implementing an interface declares each of the interface's fields, with the same
- *    name, type, cardinality and presence (its own field number).
+ *    name, type, cardinality and presence (its own field number). A field the interface types with
+ *    one of its abstract types is typed with the implementation's nested message of that name.
+ * 8. A message implementing an interface declares a nested message for each of the interface's
+ *    abstract types, with the same name.
  */
 class SchemaRules(private val schema: Schema) {
 
@@ -75,6 +79,9 @@ class SchemaRules(private val schema: Schema) {
 
             // 5. Interfaces.
             allMessages(file).filter { schema.isInterface(it) }.forEach { message ->
+                if (message.enumTypes.isNotEmpty()) {
+                    add("${file.name}: interface ${message.fullName} must not declare enums (it has ${message.enumTypes.joinToString { it.name }})")
+                }
                 if (message.realOneofs.isNotEmpty()) {
                     add("${file.name}: interface ${message.fullName} must not declare oneofs (it has ${message.realOneofs.joinToString { it.name }})")
                 }
@@ -92,24 +99,37 @@ class SchemaRules(private val schema: Schema) {
                     }
                     // 7. Interface fields.
                     val implementation = ext.messageType
-                    ext.containingType.fields.forEach { required ->
+                    val iface = ext.containingType
+                    val implementedAs = "${implementation.fullName} implements interface ${iface.fullName} (as ${ext.fullName})"
+                    iface.fields.forEach { required ->
                         val own = implementation.findFieldByName(required.name)
-                        val prefix = "${file.name}: ${implementation.fullName} implements interface " +
-                            "${ext.containingType.fullName} (as ${ext.fullName}), so it must declare `${signature(required)}`"
+                        val prefix = "${file.name}: $implementedAs, so it must declare `${signature(required, iface)}`"
                         when {
                             own == null -> add(prefix)
                             own.realContainingOneof != null -> add("$prefix outside a oneof")
-                            signature(own) != signature(required) -> add("$prefix (it declares `${signature(own)}`)")
+                            signature(own, implementation) != signature(required, iface) ->
+                                add("$prefix (it declares `${signature(own, implementation)}`)")
+                        }
+                    }
+                    // 8. Abstract types.
+                    iface.nestedTypes.filterNot { it.options.mapEntry }.forEach { type ->
+                        if (implementation.nestedTypes.none { it.name == type.name }) {
+                            add("${file.name}: $implementedAs, so it must declare `message ${type.name}`")
                         }
                     }
                 }
         }
     }
 
-    /** A field as it would be written in a .proto file, without its number. */
-    private fun signature(field: FieldDescriptor): String {
+    /**
+     * A field as it would be written in a .proto file, without its number. A message type nested in
+     * [owner] (an interface's abstract type, or an implementation's binding of it) is written
+     * `Self.<Name>`, so the two compare equal.
+     */
+    private fun signature(field: FieldDescriptor, owner: Descriptor): String {
         fun type(f: FieldDescriptor) = when (f.type) {
-            FieldDescriptor.Type.MESSAGE, FieldDescriptor.Type.GROUP -> f.messageType.fullName
+            FieldDescriptor.Type.MESSAGE, FieldDescriptor.Type.GROUP ->
+                if (f.messageType.containingType == owner && !f.messageType.options.mapEntry) "Self.${f.messageType.name}" else f.messageType.fullName
             FieldDescriptor.Type.ENUM -> f.enumType.fullName
             else -> f.type.name.lowercase()
         }

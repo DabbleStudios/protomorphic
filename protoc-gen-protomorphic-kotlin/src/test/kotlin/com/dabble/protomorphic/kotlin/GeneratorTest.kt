@@ -67,4 +67,35 @@ class GeneratorTest {
         val people = response.fileList.single { it.name == "test/foundation/People.kt" }.content
         assertTrue("override val name: kotlin.String? = null," in people, people)
     }
+
+    @Test
+    fun abstractTypesBecomeTypeParameters() {
+        val ui = "ui/ui.proto" to Protoc.file(
+            "test.ui",
+            """
+            ${Protoc.library("ui", 1, 999)}
+            message Fn {
+              option (protomorphic.interface) = true;
+              message Input {}
+              message Output {}
+              Input input = 1;
+              extensions 100 to max;
+            }
+            """,
+        )
+        val foundation = "foundation/square.proto" to Protoc.file(
+            "test.foundation",
+            "${Protoc.library("foundation", 1000, 1999, "ui")}\nmessage Square { message Input { int32 x = 1; } message Output { int32 y = 1; } Input input = 1; }\nextend test.ui.Fn { Square square = 1000; }",
+            "ui/ui.proto",
+        )
+        val response = generate(Protoc.request(mapOf(ui, foundation)))
+        assertEquals("", response.error)
+        val fn = response.fileList.single { it.name == "test/ui/Ui.kt" }.content
+        assertTrue("public interface Implementation<Input : kotlin.Any, Output : kotlin.Any>" in fn, fn)
+        assertTrue("public val input: Input?" in fn, fn)
+        assertFalse("data class Input(" in fn, "abstract types are not generated")
+        val square = response.fileList.single { it.name == "test/foundation/Square.kt" }.content
+        assertTrue(": test.ui.Fn.Implementation<test.foundation.Square.Input, test.foundation.Square.Output>" in square, square)
+        assertTrue("override val input: test.foundation.Square.Input? = null," in square, square)
+    }
 }

@@ -60,6 +60,19 @@ extend google.protobuf.MessageOptions {
   //     extensions 100 to max;
   //   }
   //
+  // Messages nested in an interface are abstract types, like a Kotlin interface's type parameters:
+  // every implementation declares nested messages of the same names, and an interface field typed
+  // with one has the implementation's own type. In Kotlin they become type parameters,
+  // `Action.Implementation<Input, Output>`:
+  //
+  //   message Action {
+  //     option (protomorphic.interface) = true;
+  //     message Input {}
+  //     message Output {}
+  //     Input input = 1;        // each implementation's own Input
+  //     extensions 100 to max;
+  //   }
+  //
   //   extend example.ui.v1.Shape { RoundedCornerShape rounded_corner = 1000; }
   //
   // protoc-gen-protomorphic-kotlin fails the build if an interface declares fields or has no extension

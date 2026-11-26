@@ -5,14 +5,18 @@ import com.dabble.protomorphic.conformance.foundation.v1.Label
 import com.dabble.protomorphic.conformance.foundation.v1.Person
 import com.dabble.protomorphic.conformance.foundation.v1.RoundedCornerShape
 import com.dabble.protomorphic.conformance.foundation.v1.ShapesExtensions
+import com.dabble.protomorphic.conformance.foundation.v1.Square
 import com.dabble.protomorphic.conformance.foundation.v1.circle
 import com.dabble.protomorphic.conformance.foundation.v1.label
 import com.dabble.protomorphic.conformance.foundation.v1.person
 import com.dabble.protomorphic.conformance.foundation.v1.roundedCorner
+import com.dabble.protomorphic.conformance.foundation.v1.square
 import com.dabble.protomorphic.conformance.foundation.v1.withLabel
 import com.dabble.protomorphic.conformance.ui.v1.Axes
+import com.dabble.protomorphic.conformance.ui.v1.Call
 import com.dabble.protomorphic.conformance.ui.v1.Centered
 import com.dabble.protomorphic.conformance.ui.v1.ClipModifier
+import com.dabble.protomorphic.conformance.ui.v1.Function
 import com.dabble.protomorphic.conformance.ui.v1.Greeting
 import com.dabble.protomorphic.conformance.ui.v1.Horizontal
 import com.dabble.protomorphic.conformance.ui.v1.Named
@@ -254,6 +258,16 @@ class ConformanceTest {
         assertEquals(UiExtensions.Horizontal.center.number, axes.horizontal?.implementationNumber)
         assertEquals("protomorphic.conformance.ui.v1.Vertical.center", UiExtensions.Vertical.center.name)
         assertEquals(Centered(), Axes.ADAPTER.decode(Goldens.Axes.decodeHex()).vertical?.center)
+    }
+
+    @Test
+    fun abstractTypesAreBoundByEachImplementation() {
+        val square: Function.Implementation<Square.Input, Square.Output> = Square(input = Square.Input(x = 3))
+        assertEquals(3, square.input?.x)
+        assertConforms(Goldens.SquareCall, Call(function = square.toFunction()), Call.ADAPTER)
+        // A handler is typed by the implementation's own Input and Output.
+        val run: (Square) -> Square.Output = { Square.Output(y = it.input!!.x * it.input.x) }
+        assertEquals(9, run(Call.ADAPTER.decode(Goldens.SquareCall.decodeHex()).function!!.square!!).y)
     }
 
     @Test
