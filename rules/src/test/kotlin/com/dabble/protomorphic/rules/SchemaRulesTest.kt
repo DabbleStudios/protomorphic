@@ -1,6 +1,7 @@
 package com.dabble.protomorphic.rules
 
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.test.assertTrue
 
 class SchemaRulesTest {
@@ -58,15 +59,53 @@ class SchemaRulesTest {
     )
 
     @Test
-    fun interfaceWithFields() = assertError(
-        "interface test.bad.Shape must not declare fields (it has id)",
+    fun interfaceWithAOneof() = assertError(
+        "interface test.bad.Shape must not declare oneofs (it has kind)",
         mapOf(
             "bad/bad.proto" to Protoc.file(
                 "test.bad",
-                "${Protoc.library("bad", 1, 9)}\nmessage Shape {\n option (protomorphic.interface) = true;\n int32 id = 1;\n extensions 2 to max;\n}",
+                "${Protoc.library("bad", 1, 9)}\nmessage Shape {\n option (protomorphic.interface) = true;\n oneof kind { int32 id = 1; }\n extensions 2 to max;\n}",
             ),
         ),
     )
+
+    /** ui/named.proto: a Named interface with an abstract `name` field. */
+    private val named = "ui/named.proto" to Protoc.file(
+        "test.ui.named",
+        "${Protoc.library("ui", 1, 999)}\nmessage Named {\n option (protomorphic.interface) = true;\n string name = 1;\n extensions 100 to max;\n}",
+    )
+
+    private fun implementation(body: String) = "foundation/f.proto" to Protoc.file(
+        "test.foundation",
+        "${Protoc.library("foundation", 1000, 1999, "ui")}\n$body\nextend test.ui.named.Named { Person person = 1000; }",
+        "ui/named.proto",
+    )
+
+    @Test
+    fun implementationMissingAnInterfaceField() = assertError(
+        "test.foundation.Person implements interface test.ui.named.Named (as test.foundation.person), so it must declare `string name [features.field_presence = EXPLICIT]`",
+        mapOf(Protoc.ui, named, implementation("message Person { int32 age = 1; }")),
+    )
+
+    @Test
+    fun implementationWithTheWrongFieldType() = assertError(
+        "so it must declare `string name [features.field_presence = EXPLICIT]` (it declares `bytes name [features.field_presence = EXPLICIT]`)",
+        mapOf(Protoc.ui, named, implementation("message Person { bytes name = 1; }")),
+    )
+
+    @Test
+    fun implementationWithTheWrongPresence() = assertError(
+        "so it must declare `string name [features.field_presence = EXPLICIT]` (it declares `string name`)",
+        mapOf(Protoc.ui, named, implementation("message Person { string name = 1 [features.field_presence = IMPLICIT]; }")),
+    )
+
+    @Test
+    fun implementationDeclaringTheFieldIsValid() {
+        val errors = SchemaRules(
+            Schema(Protoc.request(mapOf(Protoc.ui, named, implementation("message Person { int32 age = 1; string name = 7; }")))),
+        ).check()
+        assertEquals(emptyList(), errors)
+    }
 
     @Test
     fun interfaceWithoutAnExtensionRange() = assertError(

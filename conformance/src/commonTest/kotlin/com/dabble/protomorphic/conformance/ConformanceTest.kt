@@ -2,6 +2,8 @@ package com.dabble.protomorphic.conformance
 
 import com.dabble.protomorphic.conformance.foundation.v1.CircleShape
 import com.dabble.protomorphic.conformance.foundation.v1.Label
+import com.dabble.protomorphic.conformance.foundation.v1.Person
+import com.dabble.protomorphic.conformance.foundation.v1.person
 import com.dabble.protomorphic.conformance.foundation.v1.RoundedCornerShape
 import com.dabble.protomorphic.conformance.foundation.v1.ShapesExtensions
 import com.dabble.protomorphic.conformance.foundation.v1.circle
@@ -9,6 +11,8 @@ import com.dabble.protomorphic.conformance.foundation.v1.label
 import com.dabble.protomorphic.conformance.foundation.v1.roundedCorner
 import com.dabble.protomorphic.conformance.foundation.v1.withLabel
 import com.dabble.protomorphic.conformance.ui.v1.ClipModifier
+import com.dabble.protomorphic.conformance.ui.v1.Greeting
+import com.dabble.protomorphic.conformance.ui.v1.Named
 import com.dabble.protomorphic.conformance.ui.v1.RectangleShape
 import com.dabble.protomorphic.conformance.ui.v1.Shape
 import com.dabble.protomorphic.conformance.ui.v1.Tagged
@@ -218,6 +222,23 @@ class ConformanceTest {
         assertNull(shape.roundedCorner)
         assertEquals(1001, shape.implementationNumber)
         assertNull(Shape().implementationNumber)
+    }
+
+    @Test
+    fun interfaceFieldsAreImplementedByEachImplementation() {
+        val ada: Named.Implementation = Person(age = 36, name = "Ada")
+        assertEquals("Ada", ada.name)
+        assertConforms(Goldens.NamedPerson, Greeting(who = ada.toNamed()), Greeting.ADAPTER)
+        assertEquals("Ada", Greeting.ADAPTER.decode(Goldens.NamedPerson.decodeHex()).who?.person?.name)
+    }
+
+    @Test
+    fun anInterfaceFieldSetOnTheInterfaceIsNotTheImplementation() {
+        // Named { name: "x" } followed by its person extension: field 1 is the abstract `name`.
+        val bytes = okio.Buffer().write("0a0178".decodeHex()).write(Named.ADAPTER.encodeByteString(Named.person(Person(name = "Ada"))))
+        val named = Named.ADAPTER.decode(bytes.readByteString())
+        assertEquals(ShapesExtensions.person.number, named.implementationNumber)
+        assertEquals("Ada", named.person?.name)
     }
 
     @Test
