@@ -37,19 +37,23 @@ public object ProtoExtensions {
     }
 
     /**
-     * The `unknownFields` of an interface message (one with no fields of its own) holding only
+     * The `unknownFields` of an interface message (whose own fields are abstract) holding only
      * [extension] set to [value]. Setting one implementation replaces any other.
      */
     public fun <T : Any> only(extension: ProtoExtension<T>, value: T): ByteString =
         Buffer().also { encode(it, extension, value) }.readByteString()
 
-    /** The field number of the first field in [unknownFields], or null when there is none. */
-    public fun firstNumber(unknownFields: ByteString): Int? {
+    /**
+     * The field number of the first field in [unknownFields] that is not in [skipped], or null when
+     * there is none. An interface skips its abstract fields' numbers, which another encoder may
+     * have set on the interface itself.
+     */
+    public fun firstNumber(unknownFields: ByteString, skipped: Set<Int> = emptySet()): Int? {
         if (unknownFields.size == 0) return null
         val reader = ProtoReader(Buffer().write(unknownFields))
         var first: Int? = null
         reader.forEachTag { tag ->
-            if (first == null) first = tag
+            if (first == null && tag !in skipped) first = tag
             reader.skip()
         }
         return first

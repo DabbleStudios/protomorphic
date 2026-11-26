@@ -14,7 +14,8 @@ import com.google.protobuf.Descriptors.OneofDescriptor
  * - a `data class` per message with a companion `ADAPTER` (a Wire [com.squareup.wire.ProtoAdapter]),
  *   nested messages and enums as nested declarations, and a sealed interface per `oneof`;
  * - an `enum class` (a [com.squareup.wire.WireEnum]) with an `ADAPTER` per enum;
- * - for `(interface)` messages, a nested `Implementation` interface;
+ * - for `(interface)` messages, a nested `Implementation` interface whose properties are the
+ *   interface's (abstract) fields, which each implementation's data class overrides;
  * - for each `extend` field, an [com.dabble.protomorphic.ProtoExtension] in the file's
  *   `<File>Extensions` object and typed Kotlin accessors on the extended class.
  *
@@ -101,15 +102,19 @@ class KotlinGenerator(private val schema: Schema) {
         val file = context.file
         val name = message.name
         val self = kotlinName(message)
-        val props = message.fields.filter { it.realContainingOneof == null }.map { Prop(it) }
-        val oneofs = message.realOneofs.map { Oneof(message, it) }
         val isInterface = schema.isInterface(message)
+        // An interface's fields are abstract: members of its Implementation, not of the wrapper.
+        val abstract = if (isInterface) message.fields.map { Prop(it) } else emptyList()
+        val props = if (isInterface) emptyList() else message.fields.filter { it.realContainingOneof == null }.map { Prop(it) }
+        val oneofs = if (isInterface) emptyList() else message.realOneofs.map { Oneof(message, it) }
         val implemented = context.implementations[message.fullName].orEmpty()
+        val overridden = implemented.flatMap { ext -> ext.containingType.fields.map { it.name } }.toSet()
 
         // Constructor parameters in declaration order; a oneof sits where its first field is.
         val parameters: List<Any> = message.fields.mapNotNull { field ->
             val oneof = field.realContainingOneof
             when {
+                isInterface -> null
                 oneof == null -> props.first { it.field == field }
                 oneof.fields.first() == field -> oneofs.first { it.descriptor == oneof }
                 else -> null
@@ -125,7 +130,8 @@ class KotlinGenerator(private val schema: Schema) {
                 is Prop -> {
                     w.kdoc(schema.comment(file, path + listOf(2, p.field.index)))
                     deprecated(w, p.field.options.deprecated)
-                    w.line("  public val ${p.property}: ${p.type} = ${p.default},")
+                    val modifier = if (p.field.name in overridden) "override" else "public"
+                    w.line("  $modifier val ${p.property}: ${p.type} = ${p.default},")
                 }
                 is Oneof -> {
                     w.kdoc(schema.comment(file, path + listOf(8, p.descriptor.index)))
@@ -145,12 +151,19 @@ class KotlinGenerator(private val schema: Schema) {
             if (isInterface) {
                 w.line("/** Implemented by each message declared as an implementation of [$name] in the same file as its extension. */")
                 w.block("public interface Implementation") {
+                    abstract.forEach { p ->
+                        w.kdoc(schema.comment(file, path + listOf(2, p.field.index)))
+                        deprecated(w, p.field.options.deprecated)
+                        w.line("public val ${p.property}: ${p.type}")
+                        w.line()
+                    }
                     w.line("public fun to$name(): $self")
                 }
                 w.line()
+                val skipped = if (abstract.isEmpty()) "" else ", kotlin.collections.setOf(" + abstract.joinToString { it.field.number.toString() } + ")"
                 w.line("/** Field number of the implementation this value holds, or null when it holds none. */")
                 w.line("public val implementationNumber: kotlin.Int?")
-                w.line("  get() = com.dabble.protomorphic.ProtoExtensions.firstNumber(unknownFields)")
+                w.line("  get() = com.dabble.protomorphic.ProtoExtensions.firstNumber(unknownFields$skipped)")
                 w.line()
             }
             oneofs.forEach { oneofType(w, file, path, self, it) }

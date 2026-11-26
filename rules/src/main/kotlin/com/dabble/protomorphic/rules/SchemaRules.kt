@@ -14,8 +14,11 @@ import com.google.protobuf.Descriptors.FileDescriptor
  * 2. Every file of a library carries the same declaration.
  * 3. The extension ranges of different libraries do not overlap.
  * 4. A file imports files of another library only if that library is in its `dependencies`.
- * 5. An (interface) message has an extension range and no fields of its own.
+ * 5. An (interface) message has an extension range and no oneofs. Its fields are abstract, like a
+ *    Kotlin interface's properties: they are never set on the interface itself.
  * 6. An extension of an (interface) message is a singular message.
+ * 7. A message implementing an interface declares each of the interface's fields, with the same
+ *    name, type, cardinality and presence (its own field number).
  */
 class SchemaRules(private val schema: Schema) {
 
@@ -72,8 +75,8 @@ class SchemaRules(private val schema: Schema) {
 
             // 5. Interfaces.
             allMessages(file).filter { schema.isInterface(it) }.forEach { message ->
-                if (message.fields.isNotEmpty()) {
-                    add("${file.name}: interface ${message.fullName} must not declare fields (it has ${message.fields.joinToString { it.name }})")
+                if (message.realOneofs.isNotEmpty()) {
+                    add("${file.name}: interface ${message.fullName} must not declare oneofs (it has ${message.realOneofs.joinToString { it.name }})")
                 }
                 if (message.toProto().extensionRangeCount == 0) {
                     add("${file.name}: interface ${message.fullName} needs an extension range, e.g. `extensions 1 to max;`")
@@ -85,9 +88,42 @@ class SchemaRules(private val schema: Schema) {
                 .forEach { ext ->
                     if (ext.isRepeated || ext.type != FieldDescriptor.Type.MESSAGE) {
                         add("${file.name}: ${ext.fullName} implements interface ${ext.containingType.fullName}, so it must be a singular message")
+                        return@forEach
+                    }
+                    // 7. Interface fields.
+                    val implementation = ext.messageType
+                    ext.containingType.fields.forEach { required ->
+                        val own = implementation.findFieldByName(required.name)
+                        val prefix = "${file.name}: ${implementation.fullName} implements interface " +
+                            "${ext.containingType.fullName} (as ${ext.fullName}), so it must declare `${signature(required)}`"
+                        when {
+                            own == null -> add(prefix)
+                            own.realContainingOneof != null -> add("$prefix outside a oneof")
+                            signature(own) != signature(required) -> add("$prefix (it declares `${signature(own)}`)")
+                        }
                     }
                 }
         }
+    }
+
+    /** A field as it would be written in a .proto file, without its number. */
+    private fun signature(field: FieldDescriptor): String {
+        fun type(f: FieldDescriptor) = when (f.type) {
+            FieldDescriptor.Type.MESSAGE, FieldDescriptor.Type.GROUP -> f.messageType.fullName
+            FieldDescriptor.Type.ENUM -> f.enumType.fullName
+            else -> f.type.name.lowercase()
+        }
+        val declared = when {
+            field.isMapField -> "map<${type(field.messageType.findFieldByNumber(1))}, ${type(field.messageType.findFieldByNumber(2))}>"
+            field.isRepeated -> "repeated ${type(field)}"
+            else -> type(field)
+        }
+        val presence = if (!field.isRepeated && field.type != FieldDescriptor.Type.MESSAGE && field.hasPresence()) {
+            " [features.field_presence = EXPLICIT]"
+        } else {
+            ""
+        }
+        return "$declared ${field.name}$presence"
     }
 
     private fun allMessages(file: FileDescriptor): List<Descriptor> =

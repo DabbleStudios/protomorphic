@@ -26,6 +26,21 @@ extend Shape {
   RectangleShape rectangle = 1;
 }
 
+// An interface with an abstract field, like a Kotlin interface property: every implementation
+// declares `name`, and Named itself never carries it.
+message Named {
+  option (protomorphic.interface) = true;
+
+  // The name every implementation has.
+  string name = 1;
+
+  extensions 100 to max;
+}
+
+message Greeting {
+  Named who = 1;
+}
+
 message ClipModifier {
   Shape shape = 1;
 }

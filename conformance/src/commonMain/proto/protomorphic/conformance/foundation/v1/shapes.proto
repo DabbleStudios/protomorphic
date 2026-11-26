@@ -27,6 +27,16 @@ extend protomorphic.conformance.ui.v1.Shape {
   CircleShape circle = 1001;
 }
 
+// Implements Named: declares its `name` (at its own number) alongside its own fields.
+message Person {
+  int32 age = 1;
+  string name = 2;
+}
+
+extend protomorphic.conformance.ui.v1.Named {
+  Person person = 1000;
+}
+
 message Label {
   string text = 1;
 }

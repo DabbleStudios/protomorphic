@@ -39,4 +39,32 @@ class GeneratorTest {
         assertEquals(listOf("test/foundation/Shapes.kt"), response.fileList.map { it.name })
         assertFalse(response.fileList.single().content.contains("data class Shape("))
     }
+
+    @Test
+    fun interfaceFieldsBecomeImplementationProperties() {
+        val ui = "ui/ui.proto" to Protoc.file(
+            "test.ui",
+            """
+            ${Protoc.library("ui", 1, 999)}
+            message Named {
+              option (protomorphic.interface) = true;
+              string name = 1;
+              extensions 100 to max;
+            }
+            """,
+        )
+        val foundation = "foundation/people.proto" to Protoc.file(
+            "test.foundation",
+            "${Protoc.library("foundation", 1000, 1999, "ui")}\nmessage Person { int32 age = 1; string name = 2; }\nextend test.ui.Named { Person person = 1000; }",
+            "ui/ui.proto",
+        )
+        val response = generate(Protoc.request(mapOf(ui, foundation)))
+        assertEquals("", response.error)
+        val named = response.fileList.single { it.name == "test/ui/Ui.kt" }.content
+        assertTrue("public val name: kotlin.String?\n" in named, named)
+        assertFalse("public val name: kotlin.String? = null," in named, "the interface itself has no name property")
+        assertTrue("firstNumber(unknownFields, kotlin.collections.setOf(1))" in named)
+        val people = response.fileList.single { it.name == "test/foundation/People.kt" }.content
+        assertTrue("override val name: kotlin.String? = null," in people, people)
+    }
 }

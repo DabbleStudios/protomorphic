@@ -48,13 +48,16 @@ extend google.protobuf.FileOptions {
 }
 
 extend google.protobuf.MessageOptions {
-  // Marks the message as an interface: it has no fields of its own, only an extension range, and
-  // each value holds exactly one implementation (one extension). Other libraries implement it by
-  // extending it:
+  // Marks the message as an interface: an extension range, and each value holds exactly one
+  // implementation (one extension). Other libraries implement it by extending it. Fields declared on
+  // the interface are abstract, like a Kotlin interface's properties: every implementation must
+  // declare each of them (same name, type and presence; its own number), and the interface itself
+  // never carries them. Number them below the extension range:
   //
   //   message Shape {
   //     option (protomorphic.interface) = true;
-  //     extensions 1 to max;
+  //     string test_tag = 1;   // abstract: every implementation declares `string test_tag`
+  //     extensions 100 to max;
   //   }
   //
   //   extend example.ui.v1.Shape { RoundedCornerShape rounded_corner = 1000; }

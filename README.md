@@ -14,12 +14,15 @@ ProtoMorphic adds **interfaces**: open, typed polymorphism across libraries.
   holds exactly one implementation. Other libraries implement it by extending it, so the declaring
   library never imports its implementations and third parties add implementations without changing
   it. On the wire an implementation costs its field tag (2-3 bytes), not a type URL.
+- **Interface fields.** Fields declared on an interface are abstract, like a Kotlin interface's
+  properties: every implementation must declare them, and they become properties of the Kotlin
+  `Implementation` interface.
 - **Typed Kotlin Multiplatform code** on the Wire runtime (Android, iOS, JVM). Each interface gets a
   Kotlin `Implementation` interface its implementations implement, typed factories and accessors,
   and an `implementationNumber` for dispatch.
 - **Build-time rules.** Each library declares its extension-number range and dependencies with
   `option (protomorphic.library)`. The build fails on numbers outside a library's range, overlapping
-  ranges, imports of undeclared libraries, or interfaces with fields.
+  ranges, imports of undeclared libraries, or implementations missing an interface's fields.
 - **Full proto semantics.** proto3 and editions 2023: implicit and explicit presence, packing, maps,
   oneofs (as sealed interfaces), nested types, well-known types, preserved unknown fields and enum
   values. Verified against `protoc --encode` on JVM, iOS and Android (`:conformance`).
@@ -31,17 +34,20 @@ ProtoMorphic adds **interfaces**: open, typed polymorphism across libraries.
 // ui/shape.proto
 message Shape {
   option (protomorphic.interface) = true;
-  extensions 1 to max;
+  string test_tag = 1;   // abstract: every implementation declares it
+  extensions 100 to max;
 }
 
 // foundation/shape.proto: implements ui's Shape without ui importing it
-message RoundedCornerShape { float radius_dp = 1; }
+message RoundedCornerShape { float radius_dp = 1; string test_tag = 2; }
 extend ui.Shape { RoundedCornerShape rounded_corner = 1000; }
 ```
 
 ```kotlin
 val shape: Shape = RoundedCornerShape(radiusDp = 8f).toShape()   // or Shape.roundedCorner(...)
 shape.roundedCorner?.radiusDp                                   // 8f
+val impl: Shape.Implementation = RoundedCornerShape(testTag = "card")
+impl.testTag                                                    // "card"
 when (shape.implementationNumber) { ShapeExtensions.roundedCorner.number -> ... }
 ```
 
