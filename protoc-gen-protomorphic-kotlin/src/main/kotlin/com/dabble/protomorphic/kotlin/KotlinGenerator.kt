@@ -62,12 +62,7 @@ class KotlinGenerator(private val schema: Schema) {
             .filter { schema.isInterface(it.containingType) && it.type == Type.MESSAGE && it.messageType.file == file }
             .groupBy { it.messageType.fullName }
 
-        /**
-         * The object holding [ext]'s [com.dabble.protomorphic.ProtoExtension]: the file's object, or for
-         * an extension declared inside a message (a scoped extension, e.g. `message Center { extend
-         * Horizontal { Center center = 1; } extend Vertical { Center center = 1; } }`) a nested object
-         * named after that message, so same-named extensions of different scopes do not clash.
-         */
+        /** Scoped extensions get a nested object per scope, so same-named ones do not clash. */
         fun holder(ext: FieldDescriptor) = extensionsObject + (ext.extensionScope?.let { ".${it.name}" } ?: "")
 
         fun extensionRef(ext: FieldDescriptor) = "${holder(ext)}.${extensionProperty(ext)}"
@@ -113,13 +108,11 @@ class KotlinGenerator(private val schema: Schema) {
         val name = message.name
         val self = kotlinName(message)
         val isInterface = schema.isInterface(message)
-        // An interface's fields are abstract: members of its Implementation, not of the wrapper.
         val abstract = if (isInterface) message.fields.map { Prop(it) } else emptyList()
         val props = if (isInterface) emptyList() else message.fields.filter { it.realContainingOneof == null }.map { Prop(it) }
         val oneofs = if (isInterface) emptyList() else message.realOneofs.map { Oneof(message, it) }
         val implemented = context.implementations[message.fullName].orEmpty()
         val overridden = implemented.flatMap { ext -> ext.containingType.fields.map { it.name } }.toSet()
-        // An interface's nested messages are abstract types: type parameters of its Implementation.
         val abstractTypes = if (isInterface) message.nestedTypes.filterNot { it.options.mapEntry } else emptyList()
 
         // Constructor parameters in declaration order; a oneof sits where its first field is.
@@ -167,14 +160,10 @@ class KotlinGenerator(private val schema: Schema) {
             if (isInterface) {
                 w.line("/** Implemented by each message declared as an implementation of [$name] in the same file as its extension. */")
                 val typeParameters = if (abstractTypes.isEmpty()) "" else abstractTypes.joinToString(prefix = "<", postfix = ">") { "${it.name} : kotlin.Any" }
-                abstractTypes.forEach { type ->
-                    w.line("// $name.${type.name} is abstract: each implementation declares its own message ${type.name}.")
-                }
                 w.block("public interface Implementation$typeParameters") {
                     abstract.forEach { p ->
                         w.kdoc(schema.comment(file, path + listOf(2, p.field.index)))
                         deprecated(w, p.field.options.deprecated)
-                        // A field typed with an abstract type has the implementation's own type.
                         val type = abstractTypes.fold(p.type) { t, abstractType -> t.replace(kotlinName(abstractType), abstractType.name) }
                         w.line("public val ${p.property}: $type")
                         w.line()
@@ -219,7 +208,6 @@ class KotlinGenerator(private val schema: Schema) {
                 w.line("private val ${it.property.trim('`')}Adapter by lazy { ${it.collectionAdapter} }")
             }
             w.line()
-            // Field names to numbers (and message types), for reading and writing fields by path.
             val fields = if (isInterface) emptyList() else message.fields
             w.line("override val fields: kotlin.collections.Map<kotlin.String, com.dabble.protomorphic.ProtoField> by lazy {")
             w.line("  kotlin.collections.mapOf(")

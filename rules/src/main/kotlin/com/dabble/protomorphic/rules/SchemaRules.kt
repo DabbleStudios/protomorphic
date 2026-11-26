@@ -121,11 +121,7 @@ class SchemaRules(private val schema: Schema) {
         }
     }
 
-    /**
-     * A field as it would be written in a .proto file, without its number. A message type nested in
-     * [owner] (an interface's abstract type, or an implementation's binding of it) is written
-     * `Self.<Name>`, so the two compare equal.
-     */
+    /** The field as written in a .proto file; a message nested in [owner] is `Self.<Name>`. */
     private fun signature(field: FieldDescriptor, owner: Descriptor): String {
         fun type(f: FieldDescriptor) = when (f.type) {
             FieldDescriptor.Type.MESSAGE, FieldDescriptor.Type.GROUP ->

@@ -7,28 +7,22 @@ import okio.Buffer
 import okio.ByteString
 
 /**
- * Reads and writes single fields of encoded messages by field path (e.g. `["input", "url"]`),
- * working on the wire format, so it needs no reflection and works on every target.
+ * Reads and writes fields of encoded messages by field path, e.g. `["input", "url"]`.
  *
- * Writing appends the field to the encoding. Protobuf merges a repeated occurrence of a singular
- * field into the earlier one (the last scalar wins, messages merge), so the result decodes as the
- * original message with that field replaced.
+ * Writing appends the field: protobuf merges it into an earlier occurrence (the last scalar wins).
  */
 public object ProtoFields {
 
-    /** One encoded field value: its wire encoding and payload (varint/fixed as a Long, length-delimited as bytes). */
     public class Value internal constructor(
         public val encoding: FieldEncoding,
         internal val number: Long,
         public val bytes: ByteString,
     ) {
-        /** The payload of a length-delimited value (a string, bytes or an embedded message). */
         public companion object {
             public fun lengthDelimited(bytes: ByteString): Value = Value(FieldEncoding.LENGTH_DELIMITED, 0, bytes)
         }
     }
 
-    /** The last occurrence of the field at [path] in [message] (encoded by [adapter]), or null. */
     public fun read(message: ByteString, adapter: MessageAdapter<*>, path: List<String>): Value? {
         require(path.isNotEmpty()) { "empty field path" }
         val field = adapter.fields[path.first()]
@@ -39,7 +33,6 @@ public object ProtoFields {
         return read(value.bytes, nested, path.drop(1))
     }
 
-    /** [message] (encoded by [adapter]) with the field at [path] set to [value]. */
     public fun write(message: ByteString, adapter: MessageAdapter<*>, path: List<String>, value: Value): ByteString =
         Buffer().write(message).write(encode(adapter, path, value)).readByteString()
 
@@ -69,7 +62,7 @@ public object ProtoFields {
         return buffer.readByteString()
     }
 
-    /** The last occurrence of field [number] in [message], or null: for messages without an adapter, e.g. a wrapper type's value (field 1). */
+    /** For messages without an adapter, e.g. a wrapper type's value (field 1). */
     public fun read(message: ByteString, number: Int): Value? = readNumber(message, number)
 
     private fun readNumber(message: ByteString, number: Int): Value? {
