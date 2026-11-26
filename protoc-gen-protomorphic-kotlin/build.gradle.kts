@@ -6,6 +6,7 @@ import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 plugins {
     alias(libs.plugins.kotlinJvm)
     `java-library`
+    alias(libs.plugins.mavenPublish)
 }
 
 kotlin {
@@ -54,4 +55,11 @@ fun protocClassifier(): String {
     }
     val archPart = if (arch == "aarch64" || arch == "arm64") "aarch_64" else "x86_64"
     return "$osPart-$archPart"
+}
+
+mavenPublishing {
+    pom {
+        name = "protoc-gen-protomorphic-kotlin"
+        description = "A protoc plugin that checks the ProtoMorphic rules and generates Kotlin Multiplatform code."
+    }
 }

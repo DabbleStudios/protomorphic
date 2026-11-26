@@ -1,10 +1,11 @@
 import java.util.Properties
 
-// The protomorphic Gradle plugin (`com.dabble.protomorphic`): runs protoc (resolved from Maven) with
+// The protomorphic Gradle plugin (`studio.dabble.protomorphic`): runs protoc (resolved from Maven) with
 // protoc-gen-protomorphic-kotlin on a module's protos, puts protomorphic/options.proto on the proto path,
 // and adds the generated Kotlin and the runtime to the module.
 plugins {
     `kotlin-dsl`
+    alias(libs.plugins.mavenPublish)
 }
 
 val rootProperties = Properties().apply { file("../gradle.properties").inputStream().use(::load) }
@@ -18,8 +19,8 @@ dependencies {
 gradlePlugin {
     plugins {
         register("protomorphic") {
-            id = "com.dabble.protomorphic"
-            implementationClass = "com.dabble.protomorphic.gradle.ProtomorphicPlugin"
+            id = "studio.dabble.protomorphic"
+            implementationClass = "studio.dabble.protomorphic.gradle.ProtomorphicPlugin"
         }
     }
 }
@@ -38,4 +39,37 @@ val writeVersions by tasks.registering {
 }
 sourceSets.main {
     resources.srcDir(writeVersions)
+}
+
+mavenPublishing {
+    publishToMavenCentral()
+    if (providers.gradleProperty("signingInMemoryKey").isPresent) signAllPublications()
+    pom {
+        url = "https://github.com/DabbleStudios/protomorphic"
+        inceptionYear = "2026"
+        licenses {
+            license {
+                name = "The Apache License, Version 2.0"
+                url = "https://www.apache.org/licenses/LICENSE-2.0.txt"
+                distribution = "repo"
+            }
+        }
+        developers {
+            developer {
+                id = "DabbleStudios"
+                name = "Dabble Studios"
+                url = "https://github.com/DabbleStudios"
+            }
+        }
+        scm {
+            url = "https://github.com/DabbleStudios/protomorphic"
+            connection = "scm:git:https://github.com/DabbleStudios/protomorphic.git"
+            developerConnection = "scm:git:ssh://git@github.com/DabbleStudios/protomorphic.git"
+        }
+    }
+}
+
+mavenPublishing.pom {
+    name = "ProtoMorphic Gradle plugin"
+    description = "Runs protoc with protoc-gen-protomorphic-kotlin on a module's protos and adds the generated Kotlin and the ProtoMorphic runtime."
 }

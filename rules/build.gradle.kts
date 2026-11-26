@@ -7,6 +7,7 @@ plugins {
     alias(libs.plugins.kotlinJvm)
     `java-library`
     `java-test-fixtures`
+    alias(libs.plugins.mavenPublish)
 }
 
 kotlin {
@@ -56,4 +57,21 @@ fun protocClassifier(): String {
     }
     val archPart = if (arch == "aarch64" || arch == "arm64") "aarch_64" else "x86_64"
     return "$osPart-$archPart"
+}
+
+mavenPublishing {
+    pom {
+        name = "ProtoMorphic rules"
+        description = "The ProtoMorphic schema rules and the language-independent schema model generators build on."
+    }
+}
+
+// The test fixtures run the real protoc and are for this build's tests only.
+(components["java"] as AdhocComponentWithVariants).apply {
+    withVariantsFromConfiguration(configurations["testFixturesApiElements"]) { skip() }
+    withVariantsFromConfiguration(configurations["testFixturesRuntimeElements"]) { skip() }
+}
+afterEvaluate {
+    (components["java"] as AdhocComponentWithVariants)
+        .withVariantsFromConfiguration(configurations["testFixturesSourcesElements"]) { skip() }
 }

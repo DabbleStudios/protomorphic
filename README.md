@@ -62,7 +62,7 @@ when (shape.implementationNumber) { ShapeExtensions.roundedCorner.number -> ... 
 ```kotlin
 plugins {
     kotlin("multiplatform")
-    id("com.dabble.protomorphic")
+    id("studio.dabble.protomorphic") version "0.1.0"
 }
 
 protomorphic {
@@ -73,21 +73,29 @@ protomorphic {
 }
 ```
 
+The plugin and its artifacts are on Maven Central, so `mavenCentral()` must be in both
+`pluginManagement` and `dependencyResolutionManagement` repositories.
 `protomorphic/options.proto` is on the proto path automatically.
 
 ## Modules
 
 | Module | Artifact | Contents |
 |---|---|---|
-| `rules` | `com.dabble.protomorphic:rules` | The schema rules and the language-independent schema model (JVM) |
-| `protoc-gen-protomorphic-kotlin` | `com.dabble.protomorphic:protoc-gen-protomorphic-kotlin` | The Kotlin generator: a protoc plugin that checks the rules and generates Kotlin (JVM) |
-| `runtime` | `com.dabble.protomorphic:runtime` | `ProtoExtension`, `ProtoExtensions`, `packAny` (KMP) |
-| `gradle-plugin` | plugin `com.dabble.protomorphic` | protoc + generator wiring, `protomorphic/options.proto` |
+| `rules` | `studio.dabble.protomorphic:rules` | The schema rules and the language-independent schema model (JVM) |
+| `protoc-gen-protomorphic-kotlin` | `studio.dabble.protomorphic:protoc-gen-protomorphic-kotlin` | The Kotlin generator: a protoc plugin that checks the rules and generates Kotlin (JVM) |
+| `runtime` | `studio.dabble.protomorphic:runtime` | `ProtoExtension`, `ProtoExtensions`, `packAny` (KMP) |
+| `gradle-plugin` | plugin `studio.dabble.protomorphic` | protoc + generator wiring, `protomorphic/options.proto` |
 | `conformance` | - | Tests against `protoc --encode` |
 
 Kotlin is the first target. Swift and Go are planned as thin add-on plugins over the official
 `protoc-gen-swift` / `protoc-gen-go`, which already handle messages and extensions; they add the
 interface layer and reuse `rules`.
 
-Until artifacts are published, consume it as a composite build (e.g. a git submodule plus
-`includeBuild`).
+## Releasing
+
+Push a `v<version>` tag. The release workflow sets the version from the tag and publishes every
+artifact to Maven Central, signed.
+
+## License
+
+Apache License 2.0. See [LICENSE](LICENSE).

@@ -4,7 +4,7 @@ package protomorphic.conformance.v1;
 
 import "protomorphic/conformance/v1/editions.proto";
 
-option java_package = "com.dabble.protomorphic.conformance.v1";
+option java_package = "studio.dabble.protomorphic.conformance.v1";
 // A common setup: editions with proto3-style implicit presence, opting fields into explicit
 // presence where "unset" must differ from zero.
 option features.field_presence = IMPLICIT;
