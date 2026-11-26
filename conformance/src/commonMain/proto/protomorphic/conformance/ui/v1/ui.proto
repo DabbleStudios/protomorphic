@@ -71,6 +71,23 @@ message Axes {
   Vertical vertical = 2;
 }
 
+// An interface with abstract types, like a Kotlin interface's type parameters: Function<Input, Output>.
+// Every implementation declares its own Input and Output, and `input` has the implementation's Input.
+message Function {
+  option (protomorphic.interface) = true;
+
+  message Input {}
+  message Output {}
+
+  Input input = 1;
+
+  extensions 100 to max;
+}
+
+message Call {
+  Function function = 1;
+}
+
 message ClipModifier {
   Shape shape = 1;
 }

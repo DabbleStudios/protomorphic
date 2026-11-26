@@ -15,7 +15,9 @@ import com.google.protobuf.Descriptors.OneofDescriptor
  *   nested messages and enums as nested declarations, and a sealed interface per `oneof`;
  * - an `enum class` (a [com.squareup.wire.WireEnum]) with an `ADAPTER` per enum;
  * - for `(interface)` messages, a nested `Implementation` interface whose properties are the
- *   interface's (abstract) fields, which each implementation's data class overrides;
+ *   interface's (abstract) fields, which each implementation's data class overrides, and whose type
+ *   parameters are the interface's abstract nested types (`Implementation<Input, Output>`), bound
+ *   by each implementation to its own nested messages of the same names;
  * - for each `extend` field, an [com.dabble.protomorphic.ProtoExtension] in the file's
  *   `<File>Extensions` object and typed Kotlin accessors on the extended class.
  *
@@ -117,6 +119,8 @@ class KotlinGenerator(private val schema: Schema) {
         val oneofs = if (isInterface) emptyList() else message.realOneofs.map { Oneof(message, it) }
         val implemented = context.implementations[message.fullName].orEmpty()
         val overridden = implemented.flatMap { ext -> ext.containingType.fields.map { it.name } }.toSet()
+        // An interface's nested messages are abstract types: type parameters of its Implementation.
+        val abstractTypes = if (isInterface) message.nestedTypes.filterNot { it.options.mapEntry } else emptyList()
 
         // Constructor parameters in declaration order; a oneof sits where its first field is.
         val parameters: List<Any> = message.fields.mapNotNull { field ->
@@ -148,7 +152,11 @@ class KotlinGenerator(private val schema: Schema) {
             }
         }
         w.line("  public val unknownFields: okio.ByteString = okio.ByteString.EMPTY,")
-        val supertypes = implemented.map { "${kotlinName(it.containingType)}.Implementation" }.distinct()
+        val supertypes = implemented.map { ext ->
+            val types = ext.containingType.nestedTypes.filterNot { it.options.mapEntry }
+            "${kotlinName(ext.containingType)}.Implementation" +
+                if (types.isEmpty()) "" else types.joinToString(prefix = "<", postfix = ">") { "$self.${it.name}" }
+        }.distinct()
         w.block(")" + if (supertypes.isEmpty()) "" else " : " + supertypes.joinToString()) {
             implemented.distinctBy { it.containingType.fullName }.forEach { ext ->
                 val iface = kotlinName(ext.containingType)
@@ -158,11 +166,17 @@ class KotlinGenerator(private val schema: Schema) {
             }
             if (isInterface) {
                 w.line("/** Implemented by each message declared as an implementation of [$name] in the same file as its extension. */")
-                w.block("public interface Implementation") {
+                val typeParameters = if (abstractTypes.isEmpty()) "" else abstractTypes.joinToString(prefix = "<", postfix = ">") { "${it.name} : kotlin.Any" }
+                abstractTypes.forEach { type ->
+                    w.line("// $name.${type.name} is abstract: each implementation declares its own message ${type.name}.")
+                }
+                w.block("public interface Implementation$typeParameters") {
                     abstract.forEach { p ->
                         w.kdoc(schema.comment(file, path + listOf(2, p.field.index)))
                         deprecated(w, p.field.options.deprecated)
-                        w.line("public val ${p.property}: ${p.type}")
+                        // A field typed with an abstract type has the implementation's own type.
+                        val type = abstractTypes.fold(p.type) { t, abstractType -> t.replace(kotlinName(abstractType), abstractType.name) }
+                        w.line("public val ${p.property}: $type")
                         w.line()
                     }
                     w.line("public fun to$name(): $self")
@@ -176,10 +190,10 @@ class KotlinGenerator(private val schema: Schema) {
             }
             oneofs.forEach { oneofType(w, file, path, self, it) }
             message.enumTypes.forEach { enum(w, context, it, path + listOf(4, it.index)) }
-            message.nestedTypes.forEach { message(w, context, it, path + listOf(3, it.index)) }
+            if (!isInterface) message.nestedTypes.forEach { message(w, context, it, path + listOf(3, it.index)) }
             w.line()
             w.block("public companion object") {
-                adapter(w, message, self, props, oneofs)
+                adapter(w, message, self, props, oneofs, isInterface)
             }
         }
     }
@@ -195,15 +209,27 @@ class KotlinGenerator(private val schema: Schema) {
         w.line()
     }
 
-    private fun adapter(w: CodeWriter, message: Descriptor, self: String, props: List<Prop>, oneofs: List<Oneof>) {
+    private fun adapter(w: CodeWriter, message: Descriptor, self: String, props: List<Prop>, oneofs: List<Oneof>, isInterface: Boolean) {
         val ordered: List<Member> = (props + oneofs.flatMap { it.cases }).sortedBy { it.field.number }
-        w.line("public val ADAPTER: com.squareup.wire.ProtoAdapter<$self> = object : com.squareup.wire.ProtoAdapter<$self>(")
+        w.line("public val ADAPTER: com.dabble.protomorphic.MessageAdapter<$self> = object : com.dabble.protomorphic.MessageAdapter<$self>(")
         w.line("  com.squareup.wire.FieldEncoding.LENGTH_DELIMITED, $self::class,")
         w.line("  \"type.googleapis.com/${message.fullName}\", com.squareup.wire.Syntax.PROTO_3, null, \"${message.file.name}\",")
         w.block(")") {
             props.filter { it.kind == Kind.REPEATED || it.kind == Kind.MAP }.forEach {
                 w.line("private val ${it.property.trim('`')}Adapter by lazy { ${it.collectionAdapter} }")
             }
+            w.line()
+            // Field names to numbers (and message types), for reading and writing fields by path.
+            val fields = if (isInterface) emptyList() else message.fields
+            w.line("override val fields: kotlin.collections.Map<kotlin.String, com.dabble.protomorphic.ProtoField> by lazy {")
+            w.line("  kotlin.collections.mapOf(")
+            fields.forEach { f ->
+                val nested = f.type == Type.MESSAGE && !f.isMapField && wellKnown[f.messageType.fullName] == null
+                val type = if (nested) ", { ${kotlinName(f.messageType)}.ADAPTER }" else ""
+                w.line("    \"${f.name}\" to com.dabble.protomorphic.ProtoField(${f.number}$type),")
+            }
+            w.line("  )")
+            w.line("}")
             w.line()
             w.block("override fun encodedSize(`value`: $self): kotlin.Int") {
                 w.line("var size = value.unknownFields.size")

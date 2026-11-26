@@ -1,0 +1,1 @@
+function { [protomorphic.conformance.foundation.v1.square] { input { x: 3 } } }

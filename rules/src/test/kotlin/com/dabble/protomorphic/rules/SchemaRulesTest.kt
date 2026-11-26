@@ -130,4 +130,47 @@ class SchemaRulesTest {
             ),
         ),
     )
+
+    /** ui/fn.proto: a Fn interface with abstract types Input and Output, and an `input` field of type Input. */
+    private val fn = "ui/fn.proto" to Protoc.file(
+        "test.ui.fn",
+        "${Protoc.library("ui", 1, 999)}\nmessage Fn {\n option (protomorphic.interface) = true;\n message Input {}\n message Output {}\n Input input = 1;\n extensions 100 to max;\n}",
+    )
+
+    private fun fnImplementation(body: String) = "foundation/f.proto" to Protoc.file(
+        "test.foundation",
+        "${Protoc.library("foundation", 1000, 1999, "ui")}\n$body\nextend test.ui.fn.Fn { Square square = 1000; }",
+        "ui/fn.proto",
+    )
+
+    @Test
+    fun implementationMissingAnAbstractType() = assertError(
+        "test.foundation.Square implements interface test.ui.fn.Fn (as test.foundation.square), so it must declare `message Output`",
+        mapOf(Protoc.ui, fn, fnImplementation("message Square { message Input { int32 x = 1; } Input input = 1; }")),
+    )
+
+    @Test
+    fun abstractTypedFieldMustUseTheImplementationsOwnType() = assertError(
+        "so it must declare `Self.Input input` (it declares `test.ui.fn.Fn.Input input`)",
+        mapOf(Protoc.ui, fn, fnImplementation("message Square { message Input {} message Output {} test.ui.fn.Fn.Input input = 1; }")),
+    )
+
+    @Test
+    fun implementationBindingTheAbstractTypesIsValid() {
+        val errors = SchemaRules(
+            Schema(Protoc.request(mapOf(Protoc.ui, fn, fnImplementation("message Square { message Input { int32 x = 1; } message Output { int32 y = 1; } Input input = 1; }")))),
+        ).check()
+        assertEquals(emptyList(), errors)
+    }
+
+    @Test
+    fun interfaceWithAnEnum() = assertError(
+        "interface test.bad.Shape must not declare enums (it has Kind)",
+        mapOf(
+            "bad/bad.proto" to Protoc.file(
+                "test.bad",
+                "${Protoc.library("bad", 1, 9)}\nmessage Shape {\n option (protomorphic.interface) = true;\n enum Kind { KIND_UNSPECIFIED = 0; }\n extensions 1 to max;\n}",
+            ),
+        ),
+    )
 }

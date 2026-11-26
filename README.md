@@ -17,12 +17,18 @@ ProtoMorphic adds **interfaces**: open, typed polymorphism across libraries.
 - **Interface fields.** Fields declared on an interface are abstract, like a Kotlin interface's
   properties: every implementation must declare them, and they become properties of the Kotlin
   `Implementation` interface.
+- **Abstract types.** Messages nested in an interface are abstract types, like type parameters:
+  every implementation declares its own (e.g. `Input` and `Output`), and the Kotlin interface is
+  generic, `Action.Implementation<Input, Output>`.
+- **Scoped extensions.** One message can implement several interfaces under the same name with
+  extensions declared inside a message (`Horizontal.center`, `Vertical.center`); their Kotlin
+  `ProtoExtension`s live in a nested object per scope.
 - **Typed Kotlin Multiplatform code** on the Wire runtime (Android, iOS, JVM). Each interface gets a
   Kotlin `Implementation` interface its implementations implement, typed factories and accessors,
   and an `implementationNumber` for dispatch.
 - **Build-time rules.** Each library declares its extension-number range and dependencies with
   `option (protomorphic.library)`. The build fails on numbers outside a library's range, overlapping
-  ranges, imports of undeclared libraries, or implementations missing an interface's fields.
+  ranges, imports of undeclared libraries, or implementations missing an interface's fields or types.
 - **Full proto semantics.** proto3 and editions 2023: implicit and explicit presence, packing, maps,
   oneofs (as sealed interfaces), nested types, well-known types, preserved unknown fields and enum
   values. Verified against `protoc --encode` on JVM, iOS and Android (`:conformance`).

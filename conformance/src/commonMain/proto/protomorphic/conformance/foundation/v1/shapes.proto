@@ -37,6 +37,22 @@ extend protomorphic.conformance.ui.v1.Named {
   Person person = 1000;
 }
 
+// Implements Function<Square.Input, Square.Output>.
+message Square {
+  message Input {
+    int32 x = 1;
+  }
+  message Output {
+    int32 y = 1;
+  }
+
+  Input input = 1;
+}
+
+extend protomorphic.conformance.ui.v1.Function {
+  Square square = 1000;
+}
+
 message Label {
   string text = 1;
 }
