@@ -1,0 +1,17 @@
+a_double: 1.5
+a_float: -2.25
+an_int64: -9000000000
+a_uint64: 18000000000000000000
+an_int32: -7
+a_fixed64: 1234567890123
+a_fixed32: 305419896
+a_bool: true
+a_string: "h\303\251llo"
+some_bytes: "\001\002\377"
+a_uint32: 4000000000
+an_sfixed32: -42
+an_sfixed64: -4200000000
+an_sint32: -300
+an_sint64: -3000000000
+optional_int32: 0
+color: COLOR_GREEN

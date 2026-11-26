@@ -1,0 +1,66 @@
+syntax = "proto3";
+
+// The protomorphic options: interfaces (open polymorphism) and libraries (extension-number ranges
+// and layering) for Protocol Buffers. protoc-gen-protomorphic reads them and fails the build when a
+// schema breaks their rules. The protomorphic Gradle plugin puts this file on the proto path.
+package protomorphic;
+
+import "google/protobuf/descriptor.proto";
+
+option java_package = "com.dabble.protomorphic.options";
+
+// Library declares which library a .proto file belongs to, so libraries cannot collide and their
+// layering is enforced. Every file of a library carries the same declaration:
+//
+//   option (protomorphic.library) = {
+//     name: "foundation"
+//     extension_start: 1000
+//     extension_end: 1999
+//     dependencies: "ui"
+//   };
+//
+// protoc-gen-protomorphic fails the build when:
+// - an extension of a message (other than a google.protobuf.*Options) is declared in a file
+//   without (library), or its number is outside [extension_start, extension_end];
+// - two files of the same library declare different values;
+// - the extension ranges of two libraries in one compilation overlap;
+// - a file imports a file of another library that is not listed in `dependencies`.
+//
+// Choose ranges so the libraries an application combines never overlap; a project typically
+// documents its allocation (and reserves a block for third parties).
+message Library {
+  // Library name, e.g. "foundation". Unique among the libraries an application uses.
+  string name = 1;
+
+  // First extension number this library may use. 0 with extension_end 0: no extensions.
+  int32 extension_start = 2;
+
+  // Last extension number this library may use (inclusive).
+  int32 extension_end = 3;
+
+  // Names of the libraries this library's files may import.
+  repeated string dependencies = 4;
+}
+
+extend google.protobuf.FileOptions {
+  // Declares the library of this file; see Library.
+  Library library = 50001;
+}
+
+extend google.protobuf.MessageOptions {
+  // Marks the message as an interface: it has no fields of its own, only an extension range, and
+  // each value holds exactly one implementation (one extension). Other libraries implement it by
+  // extending it:
+  //
+  //   message Shape {
+  //     option (protomorphic.interface) = true;
+  //     extensions 1 to max;
+  //   }
+  //
+  //   extend example.ui.v1.Shape { RoundedCornerShape rounded_corner = 1000; }
+  //
+  // protoc-gen-protomorphic fails the build if an interface declares fields or has no extension
+  // range. Generated Kotlin: `Shape.Implementation`, implemented by each implementation declared in
+  // the same file as its extension, and `Shape.Companion.roundedCorner(...)` factories.
+  bool interface = 50002;
+}

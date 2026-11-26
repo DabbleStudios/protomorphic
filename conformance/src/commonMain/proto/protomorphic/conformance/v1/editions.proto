@@ -1,0 +1,29 @@
+edition = "2023";
+
+package protomorphic.conformance.v1;
+
+option java_package = "com.dabble.protomorphic.conformance.v1";
+
+// Editions defaults: explicit presence, packed repeated scalars, open enums.
+message ExplicitPresence {
+  int32 count = 1;
+  string name = 2;
+  bool flag = 3;
+  repeated int32 packed = 4;
+  repeated int32 expanded = 5 [features.repeated_field_encoding = EXPANDED];
+  Mode mode = 6;
+  Strict strict = 7;
+}
+
+enum Mode {
+  MODE_UNSPECIFIED = 0;
+  MODE_ON = 1;
+}
+
+// A closed enum: unknown values are kept as unknown fields.
+enum Strict {
+  option features.enum_type = CLOSED;
+
+  STRICT_ONE = 1;
+  STRICT_TWO = 2;
+}

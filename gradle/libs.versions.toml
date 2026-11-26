@@ -1,0 +1,17 @@
+[versions]
+agp = "9.2.1"
+kotlin = "2.4.20"
+wire = "7.1.0"
+# protoc and protobuf-java share a version: the generator reads protoc's descriptors with protobuf-java.
+protobuf = "4.34.1"
+
+[libraries]
+kotlin-gradlePlugin = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+protobuf-java = { module = "com.google.protobuf:protobuf-java", version.ref = "protobuf" }
+wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire" }
+kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
+
+[plugins]
+kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
+kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
+androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }

@@ -1,0 +1,8 @@
+any { [type.googleapis.com/protomorphic.conformance.v1.Subset] { id: 5 } }
+duration { seconds: 90 nanos: 5 }
+timestamp { seconds: 1700000000 nanos: 7 }
+int32_value { value: 0 }
+string_value { value: "s" }
+struct { fields { key: "a" value { number_value: 1 } } }
+value { string_value: "v" }
+values { key: "b" value { bool_value: true } }

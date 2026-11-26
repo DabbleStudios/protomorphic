@@ -1,0 +1,13 @@
+packed_int32: [1, -1, 300]
+packed_double: [0.5, -0.5]
+packed_sint64: [-1, 1]
+strings: ["a", ""]
+byte_list: ["\000", ""]
+nested_list { label: "x" level: LEVEL_HIGH }
+nested_list { }
+colors: [COLOR_RED, COLOR_GREEN]
+counts { key: "k" value: 3 }
+nested_by_id { key: 7 value { label: "seven" } }
+nested { label: "n" }
+level: LEVEL_HIGH
+number_choice: 0

@@ -1,0 +1,36 @@
+edition = "2023";
+
+package protomorphic.conformance.foundation.v1;
+
+import "protomorphic/conformance/ui/v1/ui.proto";
+import "protomorphic/options.proto";
+
+option java_package = "com.dabble.protomorphic.conformance.foundation.v1";
+option features.field_presence = IMPLICIT;
+option (protomorphic.library) = {
+  name: "conformance_foundation"
+  extension_start: 1000
+  extension_end: 1999
+  dependencies: "conformance_ui"
+};
+
+// A rounded rectangle.
+message RoundedCornerShape {
+  float radius_dp = 1;
+}
+
+message CircleShape {}
+
+extend protomorphic.conformance.ui.v1.Shape {
+  // Implements Shape.
+  RoundedCornerShape rounded_corner = 1000;
+  CircleShape circle = 1001;
+}
+
+message Label {
+  string text = 1;
+}
+
+extend protomorphic.conformance.ui.v1.Tagged {
+  Label label = 1000;
+}

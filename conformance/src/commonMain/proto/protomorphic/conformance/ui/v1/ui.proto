@@ -1,0 +1,38 @@
+edition = "2023";
+
+package protomorphic.conformance.ui.v1;
+
+import "protomorphic/options.proto";
+
+option java_package = "com.dabble.protomorphic.conformance.ui.v1";
+option features.field_presence = IMPLICIT;
+option (protomorphic.library) = {
+  name: "conformance_ui"
+  extension_start: 1
+  extension_end: 999
+};
+
+// An interface: implemented by other libraries, never importing them.
+message Shape {
+  option (protomorphic.interface) = true;
+
+  extensions 1 to max;
+}
+
+// ui's own implementation of its interface.
+message RectangleShape {}
+
+extend Shape {
+  RectangleShape rectangle = 1;
+}
+
+message ClipModifier {
+  Shape shape = 1;
+}
+
+// An extendable message that is not an interface: it has fields, and extensions add more.
+message Tagged {
+  int32 id = 1;
+
+  extensions 1000 to max;
+}

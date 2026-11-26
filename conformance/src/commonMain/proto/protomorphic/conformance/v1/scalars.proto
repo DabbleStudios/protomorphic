@@ -1,0 +1,93 @@
+syntax = "proto3";
+
+package protomorphic.conformance.v1;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/struct.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/wrappers.proto";
+
+option java_package = "com.dabble.protomorphic.conformance.v1";
+
+// Every scalar type with proto3 implicit presence, plus `optional` (explicit presence).
+message Scalars {
+  double a_double = 1;
+  float a_float = 2;
+  int64 an_int64 = 3;
+  uint64 a_uint64 = 4;
+  int32 an_int32 = 5;
+  fixed64 a_fixed64 = 6;
+  fixed32 a_fixed32 = 7;
+  bool a_bool = 8;
+  string a_string = 9;
+  bytes some_bytes = 10;
+  uint32 a_uint32 = 11;
+  sfixed32 an_sfixed32 = 12;
+  sfixed64 an_sfixed64 = 13;
+  sint32 an_sint32 = 14;
+  sint64 an_sint64 = 15;
+  optional int32 optional_int32 = 16;
+  Color color = 17;
+}
+
+enum Color {
+  COLOR_UNSPECIFIED = 0;
+  COLOR_RED = 1;
+  COLOR_GREEN = 2;
+}
+
+// Collections, nesting and oneofs.
+message Collections {
+  repeated int32 packed_int32 = 1;
+  repeated double packed_double = 2;
+  repeated sint64 packed_sint64 = 3;
+  repeated string strings = 4;
+  repeated bytes byte_list = 5;
+  repeated Nested nested_list = 6;
+  repeated Color colors = 7;
+  map<string, int32> counts = 8;
+  map<int64, Nested> nested_by_id = 9;
+  Nested nested = 10;
+  Nested.Level level = 11;
+
+  oneof choice {
+    string text = 20;
+    Nested nested_choice = 21;
+    Color color_choice = 22;
+    int32 number_choice = 23;
+  }
+
+  message Nested {
+    string label = 1;
+    Level level = 2;
+
+    enum Level {
+      LEVEL_UNSPECIFIED = 0;
+      LEVEL_HIGH = 1;
+    }
+  }
+}
+
+// Well-known types, mapped to Wire's runtime representations.
+message WellKnownTypes {
+  google.protobuf.Any any = 1;
+  google.protobuf.Duration duration = 2;
+  google.protobuf.Timestamp timestamp = 3;
+  google.protobuf.Int32Value int32_value = 4;
+  google.protobuf.StringValue string_value = 5;
+  google.protobuf.Struct struct = 6;
+  google.protobuf.Value value = 7;
+  map<string, google.protobuf.Value> values = 8;
+}
+
+// Subset and Superset share field 1; Superset adds fields a Subset reader does not know.
+message Subset {
+  int32 id = 1;
+}
+
+message Superset {
+  int32 id = 1;
+  string added_later = 2;
+  Color color = 3;
+}

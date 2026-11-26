@@ -1,0 +1,7 @@
+count: 0
+name: ""
+flag: false
+packed: [1, 2]
+expanded: [3, 4]
+mode: MODE_UNSPECIFIED
+strict: STRICT_TWO
