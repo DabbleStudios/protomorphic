@@ -41,6 +41,36 @@ message Greeting {
   Named who = 1;
 }
 
+// Two interfaces one message implements under the same name. Extensions declared inside a message
+// are scoped to it (Horizontal.center, Vertical.center), so their names do not clash.
+message Horizontal {
+  option (protomorphic.interface) = true;
+
+  extend Horizontal {
+    Centered center = 1;
+  }
+
+  extensions 1 to max;
+}
+
+message Vertical {
+  option (protomorphic.interface) = true;
+
+  extend Vertical {
+    Centered center = 1;
+  }
+
+  extensions 1 to max;
+}
+
+// Implements both Horizontal and Vertical.
+message Centered {}
+
+message Axes {
+  Horizontal horizontal = 1;
+  Vertical vertical = 2;
+}
+
 message ClipModifier {
   Shape shape = 1;
 }
