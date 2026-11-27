@@ -105,6 +105,12 @@ class ConformanceTest {
     }
 
     @Test
+    fun boolsReadEveryBitOfTheVarint() {
+        // a_bool = 2^32, whose low 32 bits are zero.
+        assertEquals(true, Scalars.ADAPTER.decode("408080808010".decodeHex()).aBool)
+    }
+
+    @Test
     fun collections() = assertConforms(
         Goldens.Collections,
         Collections(

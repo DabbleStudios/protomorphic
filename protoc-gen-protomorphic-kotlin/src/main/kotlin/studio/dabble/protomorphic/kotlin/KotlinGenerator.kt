@@ -536,7 +536,7 @@ class KotlinGenerator(private val schema: Schema) {
         Type.FIXED32 -> "$ADAPTERS.FIXED32"
         Type.SFIXED32 -> "$ADAPTERS.SFIXED32"
         Type.SINT32 -> "$ADAPTERS.SINT32"
-        Type.BOOL -> "$ADAPTERS.BOOL"
+        Type.BOOL -> "studio.dabble.protomorphic.PROTO_BOOL"
         Type.STRING -> "$ADAPTERS.STRING"
         Type.BYTES -> "$ADAPTERS.BYTES"
         Type.ENUM -> enumName(field.enumType) + ".ADAPTER"
