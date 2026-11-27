@@ -9,10 +9,12 @@ work=$(mktemp -d)
 trap 'rm -rf "$work"' EXIT
 
 curl -fsSL "https://github.com/protocolbuffers/protobuf/releases/download/v$version/protobuf-$version.tar.gz" | tar xz -C "$work"
-# The release tarball has no Abseil or jsoncpp, so CMake fetches the versions protobuf pins.
+# The release tarball has no Abseil or jsoncpp, so CMake fetches the versions protobuf pins. Static
+# linking keeps the binary self-contained, so CI can cache it alone.
 cmake -S "$work/protobuf-$version" -B "$work/build" \
   -DCMAKE_BUILD_TYPE=Release \
   -DCMAKE_CXX_STANDARD=17 \
+  -DBUILD_SHARED_LIBS=OFF \
   -Dprotobuf_BUILD_CONFORMANCE=ON \
   -Dprotobuf_BUILD_TESTS=OFF \
   -Dprotobuf_INSTALL=OFF \
