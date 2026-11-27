@@ -86,6 +86,7 @@ The plugin and its artifacts are on Maven Central, so `mavenCentral()` must be i
 | `runtime` | `studio.dabble.protomorphic:runtime` | `ProtoExtension`, `ProtoExtensions`, `packAny` (KMP) |
 | `gradle-plugin` | plugin `studio.dabble.protomorphic` | protoc + generator wiring, `protomorphic/options.proto` |
 | `conformance` | - | Tests against `protoc --encode` |
+| `conformance-suite` | - | A testee for protobuf's official conformance suite (binary proto3 and editions); known failures in `failure_list.txt` |
 
 Kotlin is the first target. Swift and Go are planned as thin add-on plugins over the official
 `protoc-gen-swift` / `protoc-gen-go`, which already handle messages and extensions; they add the
