@@ -413,7 +413,9 @@ class KotlinGenerator(private val schema: Schema) {
             } else {
                 enumSafe(field, "${scalarAdapter(field)}.tryDecode(reader, $localName)")
             }
-            Kind.NULLABLE, Kind.IMPLICIT -> enumSafe(field, "$localName = ${scalarAdapter(field)}.decode(reader)")
+            Kind.NULLABLE, Kind.IMPLICIT ->
+                if (mergesMessages(field)) "$localName = ${merged(scalarAdapter(field), localName)}"
+                else enumSafe(field, "$localName = ${scalarAdapter(field)}.decode(reader)")
         }
     }
 
@@ -438,8 +440,17 @@ class KotlinGenerator(private val schema: Schema) {
         override val adapterRef = scalarAdapter(field)
         override val valueExpr = "(value.${oneof.property} as? $caseRef)?.`value`"
         override fun guard(statement: String) = statement
-        override val decode = enumSafe(field, "${oneof.localName} = $caseRef(${scalarAdapter(field)}.decode(reader))")
+        override val decode =
+            if (mergesMessages(field)) "${oneof.localName} = $caseRef(${merged(scalarAdapter(field), "(${oneof.localName} as? $caseRef)?.`value`")})"
+            else enumSafe(field, "${oneof.localName} = $caseRef(${scalarAdapter(field)}.decode(reader))")
     }
+
+    private fun mergesMessages(field: FieldDescriptor) = field.type == Type.MESSAGE && wellKnown[field.messageType.fullName] == null
+
+    /** Protobuf merges a repeated occurrence of a singular message field into the earlier one. */
+    private fun merged(adapter: String, previous: String) =
+        "$previous.let { previous -> if (previous == null) $adapter.decode(reader) else " +
+            "$adapter.decode(okio.Buffer().write($adapter.encodeByteString(previous)).write(reader.readBytes()).readByteString()) }"
 
     /** Unknown enum values are kept as unknown fields instead of failing the decode. */
     private fun enumSafe(field: FieldDescriptor, statement: String): String =
