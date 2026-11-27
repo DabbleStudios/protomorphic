@@ -111,6 +111,13 @@ class ConformanceTest {
     }
 
     @Test
+    fun mapEntryWithoutAValueHasTheDefaultMessage() {
+        // nested_by_id { key: 7 }, with no value field: protoc --encode always writes the value.
+        val decoded = Collections.ADAPTER.decode("4a020807".decodeHex())
+        assertEquals(mapOf(7L to Collections.Nested()), decoded.nestedById)
+    }
+
+    @Test
     fun collections() = assertConforms(
         Goldens.Collections,
         Collections(

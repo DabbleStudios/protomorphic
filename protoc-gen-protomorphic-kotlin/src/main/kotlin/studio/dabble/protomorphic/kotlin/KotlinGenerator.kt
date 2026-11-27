@@ -202,7 +202,8 @@ class KotlinGenerator(private val schema: Schema) {
         val ordered: List<Member> = (props + oneofs.flatMap { it.cases }).sortedBy { it.field.number }
         w.line("public val ADAPTER: studio.dabble.protomorphic.MessageAdapter<$self> = object : studio.dabble.protomorphic.MessageAdapter<$self>(")
         w.line("  com.squareup.wire.FieldEncoding.LENGTH_DELIMITED, $self::class,")
-        w.line("  \"type.googleapis.com/${message.fullName}\", com.squareup.wire.Syntax.PROTO_3, null, \"${message.file.name}\",")
+        // The identity is what Wire's map adapter uses for a map entry without a value.
+        w.line("  \"type.googleapis.com/${message.fullName}\", com.squareup.wire.Syntax.PROTO_3, $self(), \"${message.file.name}\",")
         w.block(")") {
             props.filter { it.kind == Kind.REPEATED || it.kind == Kind.MAP }.forEach {
                 w.line("private val ${it.property.trim('`')}Adapter by lazy { ${it.collectionAdapter} }")
