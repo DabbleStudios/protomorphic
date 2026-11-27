@@ -1,0 +1,14 @@
+# Required conformance tests known to fail. The runner fails on any failure not listed here, and on
+# any listed test that passes, so remove an entry once it is fixed. Text after an entry's `#` must
+# match the runner's failure message.
+
+# Wire's ProtoReader reads tags before generated code sees them. It rejects only an all-zero tag, so
+# field number 0 with a non-zero wire type is accepted (and a field-0 group is skipped). It reads a
+# tag as a 32-bit varint, so a field number above 2^29-1 or an overlong tag wraps to a valid one.
+Required.*.ProtobufInput.BadTag_FieldNumberSlightlyTooHigh # Should have failed to parse, but didn't.
+Required.*.ProtobufInput.BadTag_FieldNumberTooHigh # Should have failed to parse, but didn't.
+Required.*.ProtobufInput.BadTag_OverlongVarint # Should have failed to parse, but didn't.
+Required.*.ProtobufInput.IllegalZeroFieldNum_Case_0 # Should have failed to parse, but didn't.
+Required.*.ProtobufInput.IllegalZeroFieldNum_Case_1 # Should have failed to parse, but didn't.
+Required.*.ProtobufInput.IllegalZeroFieldNum_Case_2 # Should have failed to parse, but didn't.
+Required.*.ProtobufInput.IllegalZeroFieldNum_Case_3 # Should have failed to parse, but didn't.

@@ -1,5 +1,6 @@
 package studio.dabble.protomorphic.conformance
 
+import studio.dabble.protomorphic.NullValue
 import studio.dabble.protomorphic.ProtoFields
 import studio.dabble.protomorphic.conformance.foundation.v1.CircleShape
 import studio.dabble.protomorphic.conformance.foundation.v1.Label
@@ -104,6 +105,19 @@ class ConformanceTest {
     }
 
     @Test
+    fun boolsReadEveryBitOfTheVarint() {
+        // a_bool = 2^32, whose low 32 bits are zero.
+        assertEquals(true, Scalars.ADAPTER.decode("408080808010".decodeHex()).aBool)
+    }
+
+    @Test
+    fun mapEntryWithoutAValueHasTheDefaultMessage() {
+        // nested_by_id { key: 7 }, with no value field: protoc --encode always writes the value.
+        val decoded = Collections.ADAPTER.decode("4a020807".decodeHex())
+        assertEquals(mapOf(7L to Collections.Nested()), decoded.nestedById)
+    }
+
+    @Test
     fun collections() = assertConforms(
         Goldens.Collections,
         Collections(
@@ -167,6 +181,17 @@ class ConformanceTest {
         assertEquals("v", decoded.value)
         assertEquals(mapOf("b" to true), decoded.values)
     }
+
+    @Test
+    fun nullValue() = assertConforms(
+        Goldens.NullValueSet,
+        WellKnownTypes(nullValue = NullValue.NULL_VALUE),
+        WellKnownTypes.ADAPTER,
+    )
+
+    @Test
+    fun unsetWellKnownTypesAreNotWritten() =
+        assertConforms(Goldens.WellKnownEmpty, WellKnownTypes(), WellKnownTypes.ADAPTER)
 
     @Test
     fun unknownFieldsSurviveAnOlderReader() {

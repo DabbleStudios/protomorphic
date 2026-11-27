@@ -34,3 +34,27 @@ jobs:
       # The generator's rule tests, and conformance on JVM and the Android host. iOS targets cannot
       # run on Linux.
       - run: ./gradlew check --continue -Pkotlin.native.ignoreDisabledTargets=true
+
+  conformance-suite:
+    name: Conformance suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v5
+      # protobuf-java 4.x.y is protobuf release x.y.
+      - id: protobuf
+        run: echo "release=$(sed -n 's/^protobuf = "4\.\(.*\)"$/\1/p' gradle/libs.versions.toml)" >> "$GITHUB_OUTPUT"
+      # The runner is not published, so it is built from source once per protobuf release.
+      - id: runner
+        uses: actions/cache@v6
+        with:
+          path: ~/conformance-runner
+          key: conformance-runner-${{ runner.os }}-${{ steps.protobuf.outputs.release }}-${{ hashFiles('conformance-suite/build-runner.sh') }}
+      - if: steps.runner.outputs.cache-hit != 'true'
+        run: conformance-suite/build-runner.sh "${{ steps.protobuf.outputs.release }}" ~/conformance-runner
+      - run: ./gradlew :conformance-suite:runConformanceSuite -PconformanceRunner="$HOME/conformance-runner/conformance_test_runner"

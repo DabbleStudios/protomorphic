@@ -79,6 +79,7 @@ message WellKnownTypes {
   google.protobuf.Struct struct = 6;
   google.protobuf.Value value = 7;
   map<string, google.protobuf.Value> values = 8;
+  optional google.protobuf.NullValue null_value = 9;
 }
 
 // Subset and Superset share field 1; Superset adds fields a Subset reader does not know.
