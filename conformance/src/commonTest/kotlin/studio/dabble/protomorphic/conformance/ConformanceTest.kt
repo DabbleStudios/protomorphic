@@ -44,6 +44,7 @@ import com.squareup.wire.durationOfSeconds
 import com.squareup.wire.ofEpochSecond
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import okio.ByteString.Companion.decodeHex
@@ -284,6 +285,27 @@ class ConformanceTest {
         assertEquals(Square(input = Square.Input(x = 3)), Square.ADAPTER.decode(rewritten))
         assertNull(ProtoFields.read(Square.ADAPTER.encodeByteString(Square()), Square.ADAPTER, listOf("input", "x")))
         assertEquals(call, Call.ADAPTER.encodeByteString(Call.ADAPTER.decode(call)))
+    }
+
+    @Test
+    fun repeatedMessageFieldsMerge() {
+        fun encode(value: Collections) = Collections.ADAPTER.encodeByteString(value)
+        val bytes = okio.Buffer()
+            .write(encode(Collections(nested = Collections.Nested(label = "a"), choice = Collections.Choice.NestedChoice(Collections.Nested(label = "b")))))
+            .write(encode(Collections(nested = Collections.Nested(level = Collections.Nested.Level.LEVEL_HIGH), choice = Collections.Choice.NestedChoice(Collections.Nested(level = Collections.Nested.Level.LEVEL_HIGH)))))
+            .readByteString()
+        val decoded = Collections.ADAPTER.decode(bytes)
+        assertEquals(Collections.Nested(label = "a", level = Collections.Nested.Level.LEVEL_HIGH), decoded.nested)
+        assertEquals(Collections.Choice.NestedChoice(Collections.Nested(label = "b", level = Collections.Nested.Level.LEVEL_HIGH)), decoded.choice)
+    }
+
+    @Test
+    fun writingAFieldChecksItsType() {
+        val square = Square.ADAPTER.encodeByteString(Square())
+        val text = ProtoFields.Value.lengthDelimited("x".encodeUtf8())
+        assertFailsWith<IllegalArgumentException> { ProtoFields.write(square, Square.ADAPTER, listOf("input", "x"), text) }
+        val collections = Collections.ADAPTER.encodeByteString(Collections())
+        assertFailsWith<IllegalArgumentException> { ProtoFields.write(collections, Collections.ADAPTER, listOf("strings"), text) }
     }
 
     @Test

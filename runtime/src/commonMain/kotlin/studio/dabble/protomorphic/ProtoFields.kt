@@ -27,6 +27,7 @@ public object ProtoFields {
         require(path.isNotEmpty()) { "empty field path" }
         val field = adapter.fields[path.first()]
             ?: throw IllegalArgumentException("${adapter.typeUrl} has no field \"${path.first()}\"")
+        require(!field.repeated) { "\"${path.first()}\" of ${adapter.typeUrl} is repeated, so it cannot be read by path" }
         val value = readNumber(message, field.number) ?: return null
         if (path.size == 1) return value
         val nested = field.message ?: throw IllegalArgumentException("\"${path.first()}\" of ${adapter.typeUrl} is not a message")
@@ -39,6 +40,12 @@ public object ProtoFields {
     private fun encode(adapter: MessageAdapter<*>, path: List<String>, value: Value): ByteString {
         val field = adapter.fields[path.first()]
             ?: throw IllegalArgumentException("${adapter.typeUrl} has no field \"${path.first()}\"")
+        require(!field.repeated) { "\"${path.first()}\" of ${adapter.typeUrl} is repeated, so it cannot be set by path" }
+        if (path.size == 1) {
+            require(value.encoding == field.encoding) {
+                "\"${path.first()}\" of ${adapter.typeUrl} is ${field.encoding}, but the value is ${value.encoding}"
+            }
+        }
         val buffer = Buffer()
         val writer = ProtoWriter(buffer)
         if (path.size == 1) {

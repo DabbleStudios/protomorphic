@@ -212,9 +212,10 @@ class KotlinGenerator(private val schema: Schema) {
             w.line("override val fields: kotlin.collections.Map<kotlin.String, studio.dabble.protomorphic.ProtoField> by lazy {")
             w.line("  kotlin.collections.mapOf(")
             fields.forEach { f ->
-                val nested = f.type == Type.MESSAGE && !f.isMapField && wellKnown[f.messageType.fullName] == null
-                val type = if (nested) ", { ${kotlinName(f.messageType)}.ADAPTER }" else ""
-                w.line("    \"${f.name}\" to studio.dabble.protomorphic.ProtoField(${f.number}$type),")
+                val nested = f.type == Type.MESSAGE && !f.isRepeated && wellKnown[f.messageType.fullName] == null
+                val message = if (nested) ", messageAdapter = { ${kotlinName(f.messageType)}.ADAPTER }" else ""
+                val repeated = if (f.isRepeated) ", repeated = true" else ""
+                w.line("    \"${f.name}\" to studio.dabble.protomorphic.ProtoField(${f.number}, com.squareup.wire.FieldEncoding.${encoding(f)}$repeated$message),")
             }
             w.line("  )")
             w.line("}")
@@ -413,7 +414,9 @@ class KotlinGenerator(private val schema: Schema) {
             } else {
                 enumSafe(field, "${scalarAdapter(field)}.tryDecode(reader, $localName)")
             }
-            Kind.NULLABLE, Kind.IMPLICIT -> enumSafe(field, "$localName = ${scalarAdapter(field)}.decode(reader)")
+            Kind.NULLABLE, Kind.IMPLICIT ->
+                if (mergesMessages(field)) "$localName = ${merged(scalarAdapter(field), localName)}"
+                else enumSafe(field, "$localName = ${scalarAdapter(field)}.decode(reader)")
         }
     }
 
@@ -438,8 +441,24 @@ class KotlinGenerator(private val schema: Schema) {
         override val adapterRef = scalarAdapter(field)
         override val valueExpr = "(value.${oneof.property} as? $caseRef)?.`value`"
         override fun guard(statement: String) = statement
-        override val decode = enumSafe(field, "${oneof.localName} = $caseRef(${scalarAdapter(field)}.decode(reader))")
+        override val decode =
+            if (mergesMessages(field)) "${oneof.localName} = $caseRef(${merged(scalarAdapter(field), "(${oneof.localName} as? $caseRef)?.`value`")})"
+            else enumSafe(field, "${oneof.localName} = $caseRef(${scalarAdapter(field)}.decode(reader))")
     }
+
+    private fun encoding(field: FieldDescriptor): String = when (field.type) {
+        Type.FIXED32, Type.SFIXED32, Type.FLOAT -> "FIXED32"
+        Type.FIXED64, Type.SFIXED64, Type.DOUBLE -> "FIXED64"
+        Type.STRING, Type.BYTES, Type.MESSAGE, Type.GROUP -> "LENGTH_DELIMITED"
+        else -> "VARINT"
+    }
+
+    private fun mergesMessages(field: FieldDescriptor) = field.type == Type.MESSAGE && wellKnown[field.messageType.fullName] == null
+
+    /** Protobuf merges a repeated occurrence of a singular message field into the earlier one. */
+    private fun merged(adapter: String, previous: String) =
+        "$previous.let { previous -> if (previous == null) $adapter.decode(reader) else " +
+            "$adapter.decode(okio.Buffer().write($adapter.encodeByteString(previous)).write(reader.readBytes()).readByteString()) }"
 
     /** Unknown enum values are kept as unknown fields instead of failing the decode. */
     private fun enumSafe(field: FieldDescriptor, statement: String): String =
