@@ -43,11 +43,7 @@ public object ProtoExtensions {
     public fun <T : Any> only(extension: ProtoExtension<T>, value: T): ByteString =
         Buffer().also { encode(it, extension, value) }.readByteString()
 
-    /**
-     * The field number of the first field in [unknownFields] that is not in [skipped], or null when
-     * there is none. An interface skips its abstract fields' numbers, which another encoder may
-     * have set on the interface itself.
-     */
+    /** The first field number not in [skipped]: an interface skips its abstract fields' numbers. */
     public fun firstNumber(unknownFields: ByteString, skipped: Set<Int> = emptySet()): Int? {
         if (unknownFields.size == 0) return null
         val reader = ProtoReader(Buffer().write(unknownFields))
