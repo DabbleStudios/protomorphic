@@ -44,6 +44,7 @@ import com.squareup.wire.durationOfSeconds
 import com.squareup.wire.ofEpochSecond
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertNotEquals
 import kotlin.test.assertNull
 import okio.ByteString.Companion.decodeHex
@@ -296,6 +297,15 @@ class ConformanceTest {
         val decoded = Collections.ADAPTER.decode(bytes)
         assertEquals(Collections.Nested(label = "a", level = Collections.Nested.Level.LEVEL_HIGH), decoded.nested)
         assertEquals(Collections.Choice.NestedChoice(Collections.Nested(label = "b", level = Collections.Nested.Level.LEVEL_HIGH)), decoded.choice)
+    }
+
+    @Test
+    fun writingAFieldChecksItsType() {
+        val square = Square.ADAPTER.encodeByteString(Square())
+        val text = ProtoFields.Value.lengthDelimited("x".encodeUtf8())
+        assertFailsWith<IllegalArgumentException> { ProtoFields.write(square, Square.ADAPTER, listOf("input", "x"), text) }
+        val collections = Collections.ADAPTER.encodeByteString(Collections())
+        assertFailsWith<IllegalArgumentException> { ProtoFields.write(collections, Collections.ADAPTER, listOf("strings"), text) }
     }
 
     @Test

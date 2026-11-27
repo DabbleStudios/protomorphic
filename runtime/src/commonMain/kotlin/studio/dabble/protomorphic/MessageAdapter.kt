@@ -19,6 +19,8 @@ public abstract class MessageAdapter<E : Any>(
 
 public class ProtoField(
     public val number: Int,
+    public val encoding: FieldEncoding,
+    public val repeated: Boolean = false,
     private val messageAdapter: (() -> MessageAdapter<*>)? = null,
 ) {
     public val message: MessageAdapter<*>? get() = messageAdapter?.invoke()

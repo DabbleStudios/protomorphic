@@ -212,9 +212,10 @@ class KotlinGenerator(private val schema: Schema) {
             w.line("override val fields: kotlin.collections.Map<kotlin.String, studio.dabble.protomorphic.ProtoField> by lazy {")
             w.line("  kotlin.collections.mapOf(")
             fields.forEach { f ->
-                val nested = f.type == Type.MESSAGE && !f.isMapField && wellKnown[f.messageType.fullName] == null
-                val type = if (nested) ", { ${kotlinName(f.messageType)}.ADAPTER }" else ""
-                w.line("    \"${f.name}\" to studio.dabble.protomorphic.ProtoField(${f.number}$type),")
+                val nested = f.type == Type.MESSAGE && !f.isRepeated && wellKnown[f.messageType.fullName] == null
+                val message = if (nested) ", messageAdapter = { ${kotlinName(f.messageType)}.ADAPTER }" else ""
+                val repeated = if (f.isRepeated) ", repeated = true" else ""
+                w.line("    \"${f.name}\" to studio.dabble.protomorphic.ProtoField(${f.number}, com.squareup.wire.FieldEncoding.${encoding(f)}$repeated$message),")
             }
             w.line("  )")
             w.line("}")
@@ -443,6 +444,13 @@ class KotlinGenerator(private val schema: Schema) {
         override val decode =
             if (mergesMessages(field)) "${oneof.localName} = $caseRef(${merged(scalarAdapter(field), "(${oneof.localName} as? $caseRef)?.`value`")})"
             else enumSafe(field, "${oneof.localName} = $caseRef(${scalarAdapter(field)}.decode(reader))")
+    }
+
+    private fun encoding(field: FieldDescriptor): String = when (field.type) {
+        Type.FIXED32, Type.SFIXED32, Type.FLOAT -> "FIXED32"
+        Type.FIXED64, Type.SFIXED64, Type.DOUBLE -> "FIXED64"
+        Type.STRING, Type.BYTES, Type.MESSAGE, Type.GROUP -> "LENGTH_DELIMITED"
+        else -> "VARINT"
     }
 
     private fun mergesMessages(field: FieldDescriptor) = field.type == Type.MESSAGE && wellKnown[field.messageType.fullName] == null
