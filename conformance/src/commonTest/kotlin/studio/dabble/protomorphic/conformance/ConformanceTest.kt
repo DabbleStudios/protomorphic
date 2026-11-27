@@ -169,6 +169,10 @@ class ConformanceTest {
     }
 
     @Test
+    fun unsetWellKnownTypesAreNotWritten() =
+        assertConforms(Goldens.WellKnownEmpty, WellKnownTypes(), WellKnownTypes.ADAPTER)
+
+    @Test
     fun unknownFieldsSurviveAnOlderReader() {
         val superset = Superset.ADAPTER.decode(Goldens.Superset.decodeHex())
         assertEquals(Superset(id = 1, addedLater = "new", color = Color.COLOR_RED), superset)

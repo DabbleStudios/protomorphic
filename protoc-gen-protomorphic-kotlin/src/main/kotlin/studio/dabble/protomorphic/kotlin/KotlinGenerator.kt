@@ -396,8 +396,13 @@ class KotlinGenerator(private val schema: Schema) {
 
         override val valueExpr = "value.$property"
 
-        override fun guard(statement: String): String =
-            if (kind == Kind.IMPLICIT) "if (${nonDefault(field, valueExpr)}) $statement" else statement
+        override fun guard(statement: String): String = when {
+            kind == Kind.IMPLICIT -> "if (${nonDefault(field, valueExpr)}) $statement"
+            // Wire writes a null Value as NullValue, but here null means the field is unset.
+            kind == Kind.NULLABLE && field.type == Type.MESSAGE && field.messageType.fullName == "google.protobuf.Value" ->
+                "if ($valueExpr != null) $statement"
+            else -> statement
+        }
 
         val local: String = when (kind) {
             Kind.MAP -> "val $localName = kotlin.collections.mutableMapOf<${elementType(mapKey)}, ${elementType(mapValue)}>()"
