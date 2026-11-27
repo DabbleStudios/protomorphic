@@ -497,6 +497,10 @@ class KotlinGenerator(private val schema: Schema) {
         "google.protobuf.BytesValue" to WellKnown("okio.ByteString?", "$ADAPTERS.BYTES_VALUE"),
     )
 
+    /** Like [kotlinName], but protomorphic's runtime declares google.protobuf.NullValue, as nothing generates struct.proto. */
+    private fun enumName(enum: EnumDescriptor): String =
+        if (enum.fullName == "google.protobuf.NullValue") "studio.dabble.protomorphic.NullValue" else kotlinName(enum)
+
     /** The Kotlin type of one value of [field] (a list element or map value for collections). */
     private fun elementType(field: FieldDescriptor): String = when (field.type) {
         Type.DOUBLE -> "kotlin.Double"
@@ -506,7 +510,7 @@ class KotlinGenerator(private val schema: Schema) {
         Type.BOOL -> "kotlin.Boolean"
         Type.STRING -> "kotlin.String"
         Type.BYTES -> "okio.ByteString"
-        Type.ENUM -> kotlinName(field.enumType)
+        Type.ENUM -> enumName(field.enumType)
         Type.MESSAGE -> wellKnown[field.messageType.fullName]?.type ?: unsupportedGoogle(field) ?: kotlinName(field.messageType)
         Type.GROUP, null -> throw SchemaException("${field.fullName}: groups are not supported")
     }
@@ -535,7 +539,7 @@ class KotlinGenerator(private val schema: Schema) {
         Type.BOOL -> "$ADAPTERS.BOOL"
         Type.STRING -> "$ADAPTERS.STRING"
         Type.BYTES -> "$ADAPTERS.BYTES"
-        Type.ENUM -> kotlinName(field.enumType) + ".ADAPTER"
+        Type.ENUM -> enumName(field.enumType) + ".ADAPTER"
         Type.MESSAGE -> wellKnown[field.messageType.fullName]?.adapter ?: (kotlinName(field.messageType) + ".ADAPTER")
         Type.GROUP, null -> throw SchemaException("${field.fullName}: groups are not supported")
     }
@@ -551,7 +555,7 @@ class KotlinGenerator(private val schema: Schema) {
         Type.ENUM -> {
             val zero = field.enumType.values.firstOrNull { it.number == 0 }
                 ?: throw SchemaException("${field.fullName}: implicit-presence enum ${field.enumType.fullName} needs a value numbered 0")
-            kotlinName(field.enumType) + "." + escape(zero.name)
+            enumName(field.enumType) + "." + escape(zero.name)
         }
         else -> throw SchemaException("${field.fullName}: no implicit default for ${field.type}")
     }

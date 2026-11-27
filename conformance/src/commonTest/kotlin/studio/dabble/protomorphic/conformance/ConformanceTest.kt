@@ -1,5 +1,6 @@
 package studio.dabble.protomorphic.conformance
 
+import studio.dabble.protomorphic.NullValue
 import studio.dabble.protomorphic.ProtoFields
 import studio.dabble.protomorphic.conformance.foundation.v1.CircleShape
 import studio.dabble.protomorphic.conformance.foundation.v1.Label
@@ -167,6 +168,13 @@ class ConformanceTest {
         assertEquals("v", decoded.value)
         assertEquals(mapOf("b" to true), decoded.values)
     }
+
+    @Test
+    fun nullValue() = assertConforms(
+        Goldens.NullValueSet,
+        WellKnownTypes(nullValue = NullValue.NULL_VALUE),
+        WellKnownTypes.ADAPTER,
+    )
 
     @Test
     fun unsetWellKnownTypesAreNotWritten() =
