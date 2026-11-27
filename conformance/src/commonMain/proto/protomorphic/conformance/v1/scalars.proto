@@ -8,7 +8,7 @@ import "google/protobuf/struct.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/wrappers.proto";
 
-option java_package = "com.dabble.protomorphic.conformance.v1";
+option java_package = "studio.dabble.protomorphic.conformance.v1";
 
 // Every scalar type with proto3 implicit presence, plus `optional` (explicit presence).
 message Scalars {

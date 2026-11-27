@@ -12,6 +12,8 @@ wire-runtime = { module = "com.squareup.wire:wire-runtime", version.ref = "wire"
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 
 [plugins]
+androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }
+# Publishes the libraries and the Gradle plugin to Maven Central.
+mavenPublish = { id = "com.vanniktech.maven.publish", version = "0.37.0" }
 kotlinJvm = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 kotlinMultiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlin" }
-androidMultiplatformLibrary = { id = "com.android.kotlin.multiplatform.library", version.ref = "agp" }

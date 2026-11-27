@@ -5,7 +5,7 @@ package protomorphic.conformance.foundation.v1;
 import "protomorphic/conformance/ui/v1/ui.proto";
 import "protomorphic/options.proto";
 
-option java_package = "com.dabble.protomorphic.conformance.foundation.v1";
+option java_package = "studio.dabble.protomorphic.conformance.foundation.v1";
 option features.field_presence = IMPLICIT;
 option (protomorphic.library) = {
   name: "conformance_foundation"

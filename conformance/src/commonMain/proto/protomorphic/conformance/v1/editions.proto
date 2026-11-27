@@ -2,7 +2,7 @@ edition = "2023";
 
 package protomorphic.conformance.v1;
 
-option java_package = "com.dabble.protomorphic.conformance.v1";
+option java_package = "studio.dabble.protomorphic.conformance.v1";
 
 // Editions defaults: explicit presence, packed repeated scalars, open enums.
 message ExplicitPresence {

@@ -7,7 +7,7 @@ package protomorphic;
 
 import "google/protobuf/descriptor.proto";
 
-option java_package = "com.dabble.protomorphic.options";
+option java_package = "studio.dabble.protomorphic.options";
 
 // Library declares which library a .proto file belongs to, so libraries cannot collide and their
 // layering is enforced. Every file of a library carries the same declaration:
